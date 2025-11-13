@@ -1,0 +1,14 @@
+{
+  "hello_world": "Merhaba Dünya",
+  "welcome": "Hoş geldiniz",
+  "goodbye": "Güle güle",
+  "error": "Hata",
+  "success": "Başarılı",
+  "not_found": "Bulunamadı",
+  "database_connection_success": "Veritabanı bağlantısı başarılı",
+  "database_connection_error": "Veritabanı bağlantı hatası",
+  "application_starting": "FastAPI uygulaması başlatılıyor...",
+  "application_shutting_down": "FastAPI uygulaması kapatılıyor...",
+  "home_page_request": "Ana sayfa isteği alındı"
+}
+

@@ -1,0 +1,14 @@
+{
+  "hello_world": "Hello World",
+  "welcome": "Welcome",
+  "goodbye": "Goodbye",
+  "error": "Error",
+  "success": "Success",
+  "not_found": "Not Found",
+  "database_connection_success": "Database connection successful",
+  "database_connection_error": "Database connection error",
+  "application_starting": "FastAPI application starting...",
+  "application_shutting_down": "FastAPI application shutting down...",
+  "home_page_request": "Home page request received"
+}
+
