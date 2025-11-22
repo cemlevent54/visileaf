@@ -1,0 +1,167 @@
+.snackbar {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    min-width: 300px;
+    max-width: 500px;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    animation: slideIn 0.3s ease-out;
+    transform: translateX(400px);
+    opacity: 0;
+}
+
+.snackbar-show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.snackbar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.snackbar-message {
+    flex: 1;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    font-weight: 500;
+}
+
+.snackbar-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.snackbar-close:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Success Snackbar */
+.snackbar-success {
+    background-color: #d4edda;
+    color: #155724;
+    border-left: 4px solid #28a745;
+}
+
+.snackbar-success .snackbar-close {
+    color: #155724;
+}
+
+.snackbar-success .snackbar-close:hover {
+    background-color: rgba(21, 87, 36, 0.1);
+}
+
+/* Error Snackbar */
+.snackbar-error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-left: 4px solid #dc3545;
+}
+
+.snackbar-error .snackbar-close {
+    color: #721c24;
+}
+
+.snackbar-error .snackbar-close:hover {
+    background-color: rgba(114, 28, 36, 0.1);
+}
+
+/* Info Snackbar */
+.snackbar-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border-left: 4px solid #17a2b8;
+}
+
+.snackbar-info .snackbar-close {
+    color: #0c5460;
+}
+
+.snackbar-info .snackbar-close:hover {
+    background-color: rgba(12, 84, 96, 0.1);
+}
+
+/* Warning Snackbar */
+.snackbar-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border-left: 4px solid #ffc107;
+}
+
+.snackbar-warning .snackbar-close {
+    color: #856404;
+}
+
+.snackbar-warning .snackbar-close:hover {
+    background-color: rgba(133, 100, 4, 0.1);
+}
+
+/* Animation */
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .snackbar-success {
+        background-color: #1e4620;
+        color: #81c784;
+        border-left-color: #4caf50;
+    }
+
+    .snackbar-error {
+        background-color: #3d1f1f;
+        color: #ef5350;
+        border-left-color: #f44336;
+    }
+
+    .snackbar-info {
+        background-color: #1e3a3f;
+        color: #4dd0e1;
+        border-left-color: #00bcd4;
+    }
+
+    .snackbar-warning {
+        background-color: #3d3420;
+        color: #ffb74d;
+        border-left-color: #ff9800;
+    }
+
+    .snackbar-close:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .snackbar {
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+    }
+}

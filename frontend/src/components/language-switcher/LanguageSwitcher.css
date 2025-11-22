@@ -1,0 +1,202 @@
+.language-switcher {
+    position: relative;
+    display: inline-block;
+}
+
+.language-switcher-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #213547;
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    outline: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.language-switcher-button:hover {
+    background-color: rgba(255, 255, 255, 1);
+    border-color: #646cff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.language-switcher-button:focus {
+    border-color: #646cff;
+    box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.2);
+}
+
+.language-switcher-flag {
+    font-size: 1.125rem;
+    line-height: 1;
+}
+
+.language-switcher-name {
+    font-weight: 600;
+}
+
+.language-switcher-arrow {
+    width: 1rem;
+    height: 1rem;
+    margin-left: 0.25rem;
+    transition: transform 0.2s ease;
+}
+
+.language-switcher-arrow.open {
+    transform: rotate(180deg);
+}
+
+.language-switcher-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 998;
+    background: transparent;
+}
+
+.language-switcher-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    width: 12rem;
+    background-color: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 999;
+    overflow: hidden;
+    animation: slideDown 0.2s ease;
+}
+
+.language-switcher-dropdown.upward {
+    top: auto;
+    bottom: calc(100% + 0.5rem);
+    animation: slideUp 0.2s ease;
+}
+
+.language-switcher-list {
+    padding: 0.5rem;
+}
+
+.language-switcher-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #213547;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    font-family: inherit;
+    outline: none;
+    position: relative;
+}
+
+.language-switcher-item:hover {
+    background: linear-gradient(to right, rgba(100, 108, 255, 0.1), rgba(99, 102, 241, 0.1));
+    color: #646cff;
+}
+
+.language-switcher-item.active {
+    background: linear-gradient(to right, rgba(100, 108, 255, 0.1), rgba(99, 102, 241, 0.1));
+    color: #646cff;
+    border-left: 2px solid #646cff;
+}
+
+.language-switcher-item-flag {
+    font-size: 1.25rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.language-switcher-item-name {
+    flex: 1;
+    font-weight: 600;
+}
+
+.language-switcher-check {
+    width: 1rem;
+    height: 1rem;
+    color: #646cff;
+    flex-shrink: 0;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile styles */
+.language-switcher-dropdown.mobile {
+    position: fixed;
+    right: 1rem;
+    left: 1rem;
+    width: auto;
+    max-width: 20rem;
+    margin: 0 auto;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .language-switcher-button {
+        color: rgba(255, 255, 255, 0.87);
+        background-color: rgba(26, 26, 26, 0.95);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .language-switcher-button:hover {
+        background-color: rgba(26, 26, 26, 1);
+        border-color: #646cff;
+    }
+
+    .language-switcher-dropdown {
+        background-color: rgba(26, 26, 26, 0.98);
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .language-switcher-item {
+        color: rgba(255, 255, 255, 0.87);
+    }
+
+    .language-switcher-item:hover {
+        background: linear-gradient(to right, rgba(100, 108, 255, 0.2), rgba(99, 102, 241, 0.2));
+        color: #646cff;
+    }
+
+    .language-switcher-item.active {
+        background: linear-gradient(to right, rgba(100, 108, 255, 0.2), rgba(99, 102, 241, 0.2));
+        color: #646cff;
+    }
+}

@@ -1,0 +1,75 @@
+{
+    "navbar": {
+        "home": "Ana Sayfa",
+        "about": "Hakkımızda",
+        "contact": "İletişim",
+        "login": "Giriş Yap",
+        "signUp": "Kayıt Ol",
+        "myAccount": "Hesabım",
+        "logout": "Çıkış Yap"
+    },
+    "login": {
+        "title": "Tekrar Hoş Geldiniz",
+        "subtitle": "Hesabınıza giriş yapın",
+        "email": "E-posta",
+        "password": "Şifre",
+        "emailPlaceholder": "E-postanızı girin",
+        "passwordPlaceholder": "Şifrenizi girin",
+        "submit": "Giriş Yap",
+        "loggingIn": "Giriş yapılıyor...",
+        "emailRequired": "E-posta gereklidir",
+        "emailInvalid": "E-posta geçersiz",
+        "passwordRequired": "Şifre gereklidir",
+        "loginSuccess": "Giriş başarılı",
+        "loginFailed": "Giriş başarısız",
+        "errorOccurred": "Giriş sırasında bir hata oluştu"
+    },
+    "register": {
+        "title": "Hesap Oluştur",
+        "subtitle": "Başlamak için kayıt olun",
+        "firstName": "Ad",
+        "lastName": "Soyad",
+        "email": "E-posta",
+        "password": "Şifre",
+        "firstNamePlaceholder": "Adınızı girin",
+        "lastNamePlaceholder": "Soyadınızı girin",
+        "emailPlaceholder": "E-postanızı girin",
+        "passwordPlaceholder": "Şifrenizi girin",
+        "submit": "Kayıt Ol",
+        "registering": "Kayıt yapılıyor...",
+        "firstNameRequired": "Ad gereklidir",
+        "lastNameRequired": "Soyad gereklidir",
+        "emailRequired": "E-posta gereklidir",
+        "emailInvalid": "E-posta geçersiz",
+        "passwordRequired": "Şifre gereklidir",
+        "passwordMinLength": "Şifre en az 8 karakter olmalıdır",
+        "registerSuccess": "Kullanıcı başarıyla kaydedildi",
+        "registerFailed": "Kayıt başarısız",
+        "errorOccurred": "Kayıt sırasında bir hata oluştu"
+    },
+    "home": {
+        "title": "Visileaf'a Hoş Geldiniz",
+        "subtitle": "Güvenli kimlik doğrulama, basit çözüm",
+        "getStarted": "Başlayın",
+        "login": "Giriş Yap",
+        "features": {
+            "secure": {
+                "title": "Güvenli",
+                "description": "Uygulamalarınız için kurumsal düzeyde güvenlik"
+            },
+            "fast": {
+                "title": "Hızlı",
+                "description": "Şimşek hızında kimlik doğrulama ve yetkilendirme"
+            },
+            "simple": {
+                "title": "Basit",
+                "description": "Projelerinize entegre etmesi ve kullanması kolay"
+            }
+        }
+    },
+    "common": {
+        "language": "Dil",
+        "english": "English",
+        "turkish": "Türkçe"
+    }
+}

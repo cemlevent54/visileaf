@@ -1,0 +1,75 @@
+{
+    "navbar": {
+        "home": "Home",
+        "about": "About",
+        "contact": "Contact",
+        "login": "Login",
+        "signUp": "Sign Up",
+        "myAccount": "My Account",
+        "logout": "Logout"
+    },
+    "login": {
+        "title": "Welcome Back",
+        "subtitle": "Sign in to your account",
+        "email": "Email",
+        "password": "Password",
+        "emailPlaceholder": "Enter your email",
+        "passwordPlaceholder": "Enter your password",
+        "submit": "Login",
+        "loggingIn": "Logging in...",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Email is invalid",
+        "passwordRequired": "Password is required",
+        "loginSuccess": "Login successful",
+        "loginFailed": "Login failed",
+        "errorOccurred": "An error occurred during login"
+    },
+    "register": {
+        "title": "Create Account",
+        "subtitle": "Sign up to get started",
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "email": "Email",
+        "password": "Password",
+        "firstNamePlaceholder": "Enter your first name",
+        "lastNamePlaceholder": "Enter your last name",
+        "emailPlaceholder": "Enter your email",
+        "passwordPlaceholder": "Enter your password",
+        "submit": "Register",
+        "registering": "Registering...",
+        "firstNameRequired": "First name is required",
+        "lastNameRequired": "Last name is required",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Email is invalid",
+        "passwordRequired": "Password is required",
+        "passwordMinLength": "Password must be at least 8 characters",
+        "registerSuccess": "User registered successfully",
+        "registerFailed": "Registration failed",
+        "errorOccurred": "An error occurred during registration"
+    },
+    "home": {
+        "title": "Welcome to Visileaf",
+        "subtitle": "Secure authentication made simple",
+        "getStarted": "Get Started",
+        "login": "Login",
+        "features": {
+            "secure": {
+                "title": "Secure",
+                "description": "Enterprise-grade security for your applications"
+            },
+            "fast": {
+                "title": "Fast",
+                "description": "Lightning-fast authentication and authorization"
+            },
+            "simple": {
+                "title": "Simple",
+                "description": "Easy to integrate and use in your projects"
+            }
+        }
+    },
+    "common": {
+        "language": "Language",
+        "english": "English",
+        "turkish": "Türkçe"
+    }
+}
