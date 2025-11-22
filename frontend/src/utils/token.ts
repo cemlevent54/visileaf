@@ -1,7 +1,7 @@
 const JWT_USER_KEY = 'jwt_user'
 
 interface DecodedToken {
-    user_id: number
+    user_id: string  // UUID from backend
     email: string
     exp: number
     iat: number
@@ -37,7 +37,7 @@ function decodeJWT(token: string): DecodedToken | null {
 /**
  * Get user ID from JWT token
  */
-function getUserIdFromToken(token: string): number | null {
+function getUserIdFromToken(token: string): string | null {
     const decoded = decodeJWT(token)
     return decoded?.user_id || null
 }
@@ -78,7 +78,7 @@ export const tokenStorage = {
     /**
      * Get user ID from stored token
      */
-    getUserId: function (): number | null {
+    getUserId: function (): string | null {
         const token = tokenStorage.getToken()
         if (!token) return null
         return getUserIdFromToken(token)
@@ -95,7 +95,7 @@ export const tokenStorage = {
     /**
      * Get full user info from token
      */
-    getUserInfo: function (): { id: number | null; email: string | null } | null {
+    getUserInfo: function (): { id: string | null; email: string | null } | null {
         const decoded = tokenStorage.getDecodedToken()
         if (!decoded) return null
 

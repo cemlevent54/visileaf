@@ -9,6 +9,29 @@
   "database_connection_error": "Veritabanı bağlantı hatası",
   "application_starting": "FastAPI uygulaması başlatılıyor...",
   "application_shutting_down": "FastAPI uygulaması kapatılıyor...",
-  "home_page_request": "Ana sayfa isteği alındı"
+  "home_page_request": "Ana sayfa isteği alındı",
+  "auth_controller": {
+    "register_success": "Kullanıcı başarıyla kaydedildi",
+    "login_success": "Kullanıcı başarıyla giriş yaptı",
+    "logout_success": "Kullanıcı başarıyla çıkış yaptı",
+    "me_success": "Kullanıcı bilgileri",
+    "refresh_token_success": "Token başarıyla yenilendi",
+    "forgot_password_success": "Şifre sıfırlama isteği başarıyla gönderildi",
+    "reset_password_success": "Şifre başarıyla sıfırlandı",
+    "email_already_registered": "Bu e-posta adresi zaten kayıtlı",
+    "invalid_credentials": "Geçersiz e-posta veya şifre",
+    "invalid_token": "Geçersiz veya süresi dolmuş token",
+    "invalid_refresh_token": "Geçersiz veya süresi dolmuş refresh token",
+    "invalid_reset_token": "Geçersiz veya süresi dolmuş sıfırlama token'ı",
+    "invalid_verification_code": "Geçersiz doğrulama kodu",
+    "user_not_found": "Kullanıcı bulunamadı",
+    "authorization_header_required": "Authorization header gerekli",
+    "registration_failed": "Kayıt başarısız",
+    "login_failed": "Giriş başarısız",
+    "logout_failed": "Çıkış başarısız",
+    "get_user_failed": "Kullanıcı bilgileri alınamadı",
+    "refresh_token_failed": "Token yenileme başarısız",
+    "forgot_password_failed": "Şifre sıfırlama isteği işlenemedi",
+    "reset_password_failed": "Şifre sıfırlama başarısız"
+  }
 }
-

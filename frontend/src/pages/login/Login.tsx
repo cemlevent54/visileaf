@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import Navbar from '../../components/navbar/Navbar'
 import Input from '../../components/input/Input'
 import Snackbar from '../../components/snackbar/Snackbar'
@@ -135,6 +135,12 @@ function Login() {
               required
               error={errors.password}
             />
+            
+            <div className="login-links">
+              <Link to="/forgot-password" className="login-link">
+                {t('login.forgotPassword')}
+              </Link>
+            </div>
             
             <button 
               type="submit" 

@@ -32,3 +32,151 @@ python -m app migrate current           # Mevcut migration durumu
 # Eski komutlar (hala çalışır)
 uvicorn app.main:app --reload
 python -m app.main
+
+tamamdır, endpoint implementasyonlarına geçiyoruz auth kısmı için.
+öncelikle kod yapsıından bahsedeceğim. routes/ klasörü altında auth.py da 
+auth route ları olacak /api/auth/register gibi mesela. user.py da da user 
+route ları olacak /api/user gibi, user ı anlaman için örnek verdim, 
+biz auth kısmını istiyoruz sadece. ardından controllers/ klasörüne geliyoruz, 
+bu klasörde de http request response lar yapılacak sadece ve implementasyon 
+kesinlikle servis e bırakılacak.
+services/ klasöründe de metot implementasyonları olacak, tüm iş mantığı burada olacak.
+bundan sonra da repositories/ klasörüne geldik, bu klasörde mesela userrepository.py
+da kullanıcı oluşturma, güncelleme, silme, getirme gibi metotlar olacak. db sorgusu 
+yazmak yerine db işlemleri models/ altındaki modellerden de yararlanarak 
+burada yapılacak. kesinlikle sql sorgusu yok, modeller üzerinden yapılacak.
+
+istediğim endpointler:
+
+POST /api/auth/register
+Request Body:
+{
+    "first_name": "",
+    "last_name": "",
+    "email": "",
+    "password":""
+}
+
+Response json: 
+{
+    "success": true,
+    "message": "User registered successfully",
+    "data": {
+        "user": {
+            "id": "",
+            "first_name": "",
+            "last_name": "",
+            "email": ""
+        }
+    }
+}
+
+POST /api/auth/login
+Request Body:
+{
+    "email": "",
+    "password":""
+}
+
+Response json: 
+{
+    "success": true,
+    "data": {
+        "user": {
+            "id": "",
+            "first_name": "",
+            "last_name": "",
+            "email": ""
+        },
+        "tokens": {
+            "access": "",
+            "refresh": ""
+        }
+    },
+    "message": "User logged in successfully",
+}
+
+POST /api/auth/logout
+Request Body:
+{
+    "refresh_token": ""
+}
+
+Response json: 
+{
+    "success": true,
+    "message": "User logged out successfully",
+}
+
+GET /api/auth/me
+Request Body:
+{
+    "access_token": ""
+}
+
+Response json: 
+{
+    "success": true,
+    "data": {
+        "user": {
+            "id": "",
+            "first_name": "",
+            "last_name": "",
+            "email": ""
+        }
+    },
+    "message": "User me information",
+}
+
+POST /api/auth/refresh-token
+Request Body:
+{
+    "refresh_token": ""
+}
+
+Response json: 
+{
+    "success": true,
+    "message": "User refreshed token successfully",
+}
+
+POST /api/auth/forgot-password
+Request Body:
+{
+    "email": ""
+}
+
+Response json: 
+{
+    "success": true,
+    "data": {
+        "user": {
+            "id": "",
+            "first_name": "",
+            "last_name": "",
+            "email": ""
+        }
+    },
+    "message": "User forgot password successfully",
+}
+
+POST /api/auth/reset-password
+Request Body:
+{
+    "token": "",
+    "password":""
+}
+
+Response json: 
+{
+    "success": true,
+    "data": {
+        "user": {
+            "id": "",
+            "first_name": "",
+            "last_name": "",
+            "email": ""
+        }
+    },
+    "message": "User reset password successfully",
+}

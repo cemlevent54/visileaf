@@ -14,6 +14,12 @@ class UserRole(str, enum.Enum):
     ADMIN = "admin"
 
 
+class UserLanguage(str, enum.Enum):
+    """Kullanıcı dil tercihleri"""
+    EN = "en"
+    TR = "tr"
+
+
 class UserBase(SQLModel):
     """Base user model"""
     first_name: Optional[str] = Field(default=None, max_length=255)
@@ -21,6 +27,7 @@ class UserBase(SQLModel):
     email: str = Field(unique=True, index=True, max_length=255)
     password_hash: str = Field(max_length=500)
     role: UserRole = Field(default=UserRole.USER)
+    language: UserLanguage = Field(default=UserLanguage.EN, max_length=2)
 
 
 class User(UserBase, table=True):
@@ -49,6 +56,7 @@ class UserUpdate(SQLModel):
     last_name: Optional[str] = None
     email: Optional[str] = None
     role: Optional[UserRole] = None
+    language: Optional[UserLanguage] = None
 
 
 class UserResponse(UserBase):

@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 class PasswordResetTokenBase(SQLModel):
     """Base password reset token model"""
     token_hash: str = Field(max_length=500)
+    code: str = Field(max_length=6)  # 6-digit verification code
     expires_at: datetime
     used: bool = Field(default=False)
 

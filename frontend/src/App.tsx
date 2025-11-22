@@ -3,6 +3,8 @@ import { LanguageProvider } from './contexts/LanguageContext'
 import Navbar from './components/navbar/Navbar'
 import Register from './pages/register/Register'
 import Login from './pages/login/Login'
+import ForgotPassword from './pages/forgot-password/ForgotPassword'
+import ResetPassword from './pages/reset-password/ResetPassword'
 import { useTranslation } from './hooks/useTranslation'
 import './App.css'
 
@@ -58,13 +60,15 @@ function Home() {
 function App() {
   return (
     <LanguageProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-        </Routes>
-      </Router>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+      </Routes>
+    </Router>
     </LanguageProvider>
   )
 }

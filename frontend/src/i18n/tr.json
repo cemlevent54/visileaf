@@ -22,7 +22,8 @@
         "passwordRequired": "Şifre gereklidir",
         "loginSuccess": "Giriş başarılı",
         "loginFailed": "Giriş başarısız",
-        "errorOccurred": "Giriş sırasında bir hata oluştu"
+        "errorOccurred": "Giriş sırasında bir hata oluştu",
+        "forgotPassword": "Şifremi Unuttum"
     },
     "register": {
         "title": "Hesap Oluştur",
@@ -66,6 +67,41 @@
                 "description": "Projelerinize entegre etmesi ve kullanması kolay"
             }
         }
+    },
+    "forgotPassword": {
+        "title": "Şifremi Unuttum",
+        "subtitle": "E-posta adresinize şifre sıfırlama kodu göndereceğiz",
+        "email": "E-posta",
+        "emailPlaceholder": "E-postanızı girin",
+        "submit": "Gönder",
+        "sending": "Gönderiliyor...",
+        "emailRequired": "E-posta gereklidir",
+        "emailInvalid": "E-posta geçersiz",
+        "successMessage": "Şifre sıfırlama kodu e-posta adresinize gönderildi",
+        "errorOccurred": "Bir hata oluştu",
+        "backToLogin": "Giriş sayfasına dön"
+    },
+    "resetPassword": {
+        "title": "Şifre Sıfırla",
+        "subtitle": "Yeni şifrenizi belirleyin",
+        "code": "Doğrulama Kodu",
+        "codePlaceholder": "6 haneli kodu girin",
+        "newPassword": "Yeni Şifre",
+        "newPasswordPlaceholder": "Yeni şifrenizi girin",
+        "confirmPassword": "Şifre Onay",
+        "confirmPasswordPlaceholder": "Şifrenizi tekrar girin",
+        "submit": "Şifreyi Sıfırla",
+        "resetting": "Sıfırlanıyor...",
+        "codeRequired": "Doğrulama kodu gereklidir",
+        "codeInvalid": "Doğrulama kodu 6 haneli olmalıdır",
+        "passwordRequired": "Şifre gereklidir",
+        "passwordMinLength": "Şifre en az 8 karakter olmalıdır",
+        "confirmPasswordRequired": "Şifre onay gereklidir",
+        "passwordsDoNotMatch": "Şifreler eşleşmiyor",
+        "invalidToken": "Geçersiz veya eksik token",
+        "successMessage": "Şifreniz başarıyla sıfırlandı",
+        "errorOccurred": "Şifre sıfırlama sırasında bir hata oluştu",
+        "backToLogin": "Giriş sayfasına dön"
     },
     "common": {
         "language": "Dil",

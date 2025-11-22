@@ -17,4 +17,13 @@ colorlog>=6.8.0
 # Utilities
 pydantic>=2.5.0
 pydantic-settings>=2.1.0
+pydantic[email]>=2.5.0
+
+# Authentication
+bcrypt>=4.0.1
+python-jose[cryptography]>=3.3.0
+PyJWT>=2.8.0
+
+# Email Service
+resend>=2.0.0
 

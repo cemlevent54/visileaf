@@ -22,7 +22,8 @@
         "passwordRequired": "Password is required",
         "loginSuccess": "Login successful",
         "loginFailed": "Login failed",
-        "errorOccurred": "An error occurred during login"
+        "errorOccurred": "An error occurred during login",
+        "forgotPassword": "Forgot Password?"
     },
     "register": {
         "title": "Create Account",
@@ -66,6 +67,41 @@
                 "description": "Easy to integrate and use in your projects"
             }
         }
+    },
+    "forgotPassword": {
+        "title": "Forgot Password",
+        "subtitle": "We'll send you a password reset code to your email",
+        "email": "Email",
+        "emailPlaceholder": "Enter your email",
+        "submit": "Send",
+        "sending": "Sending...",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Email is invalid",
+        "successMessage": "Password reset code has been sent to your email",
+        "errorOccurred": "An error occurred",
+        "backToLogin": "Back to Login"
+    },
+    "resetPassword": {
+        "title": "Reset Password",
+        "subtitle": "Set your new password",
+        "code": "Verification Code",
+        "codePlaceholder": "Enter 6-digit code",
+        "newPassword": "New Password",
+        "newPasswordPlaceholder": "Enter your new password",
+        "confirmPassword": "Confirm Password",
+        "confirmPasswordPlaceholder": "Re-enter your password",
+        "submit": "Reset Password",
+        "resetting": "Resetting...",
+        "codeRequired": "Verification code is required",
+        "codeInvalid": "Verification code must be 6 digits",
+        "passwordRequired": "Password is required",
+        "passwordMinLength": "Password must be at least 8 characters",
+        "confirmPasswordRequired": "Password confirmation is required",
+        "passwordsDoNotMatch": "Passwords do not match",
+        "invalidToken": "Invalid or missing token",
+        "successMessage": "Password has been reset successfully",
+        "errorOccurred": "An error occurred during password reset",
+        "backToLogin": "Back to Login"
     },
     "common": {
         "language": "Language",

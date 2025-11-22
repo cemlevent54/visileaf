@@ -89,6 +89,11 @@ def read_root(request: Request):
     return {"message": gettext("hello_world", request)}
 
 
+# Include routers
+from app.routes import auth
+app.include_router(auth.router)
+
+
 # Uvicorn'u programatik olarak çalıştırmak için
 if __name__ == "__main__":
     import uvicorn

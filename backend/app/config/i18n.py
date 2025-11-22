@@ -87,9 +87,10 @@ def _load_translations(locale: str) -> dict:
 def gettext(key: str, request: Optional[Request] = None, locale: Optional[str] = None) -> str:
     """
     Çeviri anahtarını kullanarak çevrilmiş metni döndürür
+    Nested key'leri destekler (örn: "auth_controller.register_success")
     
     Args:
-        key: Çeviri anahtarı
+        key: Çeviri anahtarı (nested key'ler için nokta ile ayrılmış: "auth_controller.register_success")
         request: FastAPI Request objesi (opsiyonel)
         locale: Dil kodu (opsiyonel, request'ten veya varsayılan değerden alınır)
     
@@ -106,5 +107,16 @@ def gettext(key: str, request: Optional[Request] = None, locale: Optional[str] =
     # Çevirileri yükle
     translations = _load_translations(locale)
     
-    # Çeviriyi döndür veya anahtarı
-    return translations.get(key, key)
+    # Nested key desteği: "auth_controller.register_success" -> translations["auth_controller"]["register_success"]
+    keys = key.split(".")
+    value = translations
+    
+    for k in keys:
+        if isinstance(value, dict) and k in value:
+            value = value[k]
+        else:
+            # Çeviri bulunamadı, anahtarı döndür
+            return key
+    
+    # Eğer value bir string ise döndür, değilse anahtarı döndür
+    return value if isinstance(value, str) else key

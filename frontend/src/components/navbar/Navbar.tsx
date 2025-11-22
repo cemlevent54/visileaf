@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { tokenStorage } from '../../utils/token'
 import { useTranslation } from '../../hooks/useTranslation'
+import authService from '../../services/auth.service'
 import LanguageSwitcher from '../language-switcher/LanguageSwitcher'
 import './Navbar.css'
 
@@ -15,6 +16,17 @@ function Navbar() {
   useEffect(() => {
     // Check authentication status on mount
     setIsLoggedIn(tokenStorage.isAuthenticated())
+    
+    // Listen for auth state changes (from other components like Login)
+    const handleAuthStateChange = () => {
+      setIsLoggedIn(tokenStorage.isAuthenticated())
+    }
+    
+    window.addEventListener('authStateChanged', handleAuthStateChange)
+    
+    return () => {
+      window.removeEventListener('authStateChanged', handleAuthStateChange)
+    }
   }, [])
 
   // Close mobile menu when route changes
@@ -35,11 +47,36 @@ function Navbar() {
     navigate('/register')
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Call backend logout endpoint
+      await authService.logout()
+      
+      // Update UI state
+      setIsLoggedIn(false)
+      setIsMobileMenuOpen(false)
+      
+      // Navigate to home page
+      navigate('/')
+      
+      // Dispatch auth state change event (for other components)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('authStateChanged'))
+      }
+    } catch (error) {
+      // Even if logout fails, clear local state
+      console.error('Logout error:', error)
     tokenStorage.clear()
+      localStorage.removeItem('refresh_token')
     setIsLoggedIn(false)
-    setIsMobileMenuOpen(false)
+      setIsMobileMenuOpen(false)
     navigate('/')
+      
+      // Dispatch auth state change event
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('authStateChanged'))
+      }
+    }
   }
 
   const toggleMobileMenu = () => {

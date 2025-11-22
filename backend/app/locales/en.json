@@ -9,6 +9,29 @@
   "database_connection_error": "Database connection error",
   "application_starting": "FastAPI application starting...",
   "application_shutting_down": "FastAPI application shutting down...",
-  "home_page_request": "Home page request received"
+  "home_page_request": "Home page request received",
+  "auth_controller": {
+    "register_success": "User registered successfully",
+    "login_success": "User logged in successfully",
+    "logout_success": "User logged out successfully",
+    "me_success": "User me information",
+    "refresh_token_success": "User refreshed token successfully",
+    "forgot_password_success": "User forgot password successfully",
+    "reset_password_success": "User reset password successfully",
+    "email_already_registered": "Email already registered",
+    "invalid_credentials": "Invalid email or password",
+    "invalid_token": "Invalid or expired token",
+    "invalid_refresh_token": "Invalid or expired refresh token",
+    "invalid_reset_token": "Invalid or expired reset token",
+    "invalid_verification_code": "Invalid verification code",
+    "user_not_found": "User not found",
+    "authorization_header_required": "Authorization header required",
+    "registration_failed": "Registration failed",
+    "login_failed": "Login failed",
+    "logout_failed": "Logout failed",
+    "get_user_failed": "Failed to get user information",
+    "refresh_token_failed": "Token refresh failed",
+    "forgot_password_failed": "Failed to process forgot password request",
+    "reset_password_failed": "Password reset failed"
+  }
 }
-
