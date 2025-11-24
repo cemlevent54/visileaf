@@ -36,17 +36,18 @@ async def lifespan(app: FastAPI):
     # Uvicorn başladıktan sonra logger'ları yeniden yapılandır
     reconfigure_uvicorn_loggers()
     
-    # Veritabanı bağlantısını test et
+    # Veritabanı bağlantısını test et (non-blocking)
     try:
         engine = get_engine()
-        # Bağlantıyı test et
+        # Bağlantıyı test et (timeout ile)
         with engine.connect() as conn:
             logger.info(gettext("database_connection_success"))
         
         # Veritabanı tablolarını oluştur (gerekirse)
         # init_db()  # SQLModel modelleri import edildikten sonra çağrılmalı
     except Exception as e:
-        logger.error(f"{gettext('database_connection_error')}: {e}")
+        logger.warning(f"{gettext('database_connection_error')}: {e}")
+        logger.warning("Application will continue without database connection")
     
     # OpenAPI şemasını export et
     try:
@@ -90,8 +91,9 @@ def read_root(request: Request):
 
 
 # Include routers
-from app.routes import auth
+from app.routes import auth, enhancement
 app.include_router(auth.router)
+app.include_router(enhancement.router)
 
 
 # Uvicorn'u programatik olarak çalıştırmak için

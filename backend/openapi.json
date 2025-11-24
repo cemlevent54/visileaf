@@ -316,10 +316,276 @@
           }
         }
       }
+    },
+    "/api/enhancement/enhance": {
+      "post": {
+        "tags": [
+          "enhancement"
+        ],
+        "summary": "Enhance Image",
+        "description": "Enhance image with specified methods.\n\n- **image**: Image file (JPEG, PNG, etc.)\n- **params_json**: Enhancement parameters as JSON string\n\nExample JSON:\n```json\n{\n    \"use_gamma\": true,\n    \"gamma\": 0.5,\n    \"use_msr\": true,\n    \"msr_sigmas\": [15, 80, 250],\n    \"use_clahe\": true,\n    \"clahe_clip\": 2.5,\n    \"clahe_tile_size\": [8, 8],\n    \"use_sharpen\": false,\n    \"sharpen_method\": \"unsharp\",\n    \"sharpen_strength\": 1.0,\n    \"sharpen_kernel_size\": 5,\n    \"order\": [\"gamma\", \"msr\", \"clahe\"]\n}\n```\n\nReturns:\n    Enhanced image as downloadable JPEG file",
+        "operationId": "enhance_image_api_enhancement_enhance_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_enhance_image_api_enhancement_enhance_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/enhancement/enhance-json": {
+      "post": {
+        "tags": [
+          "enhancement"
+        ],
+        "summary": "Enhance Image Json",
+        "description": "Enhance image with specified methods (alternative endpoint with JSON body).\n\n- **image**: Image file (JPEG, PNG, etc.) - sent as FormData\n- **params**: Enhancement parameters - sent as JSON body\n\nNote: This endpoint uses multipart/form-data for the image and JSON body for parameters.\nSome clients may have issues with this combination. Use /enhance endpoint for better compatibility.\n\nReturns:\n    Enhanced image as downloadable JPEG file",
+        "operationId": "enhance_image_json_api_enhancement_enhance_json_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_enhance_image_json_api_enhancement_enhance_json_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "Body_enhance_image_api_enhancement_enhance_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "format": "binary",
+            "title": "Image",
+            "description": "Image file to enhance"
+          },
+          "params_json": {
+            "type": "string",
+            "title": "Params Json",
+            "description": "Enhancement parameters as JSON string"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image",
+          "params_json"
+        ],
+        "title": "Body_enhance_image_api_enhancement_enhance_post"
+      },
+      "Body_enhance_image_json_api_enhancement_enhance_json_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "format": "binary",
+            "title": "Image",
+            "description": "Image file to enhance"
+          },
+          "params": {
+            "$ref": "#/components/schemas/EnhancementParams",
+            "description": "Enhancement parameters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image",
+          "params"
+        ],
+        "title": "Body_enhance_image_json_api_enhancement_enhance_json_post"
+      },
+      "EnhancementParams": {
+        "properties": {
+          "use_gamma": {
+            "type": "boolean",
+            "title": "Use Gamma",
+            "description": "Use gamma correction",
+            "default": false
+          },
+          "gamma": {
+            "type": "number",
+            "title": "Gamma",
+            "description": "Gamma value (<1.0 brightens, >1.0 darkens)",
+            "default": 0.5
+          },
+          "use_clahe": {
+            "type": "boolean",
+            "title": "Use Clahe",
+            "description": "Use CLAHE",
+            "default": false
+          },
+          "clahe_clip": {
+            "type": "number",
+            "title": "Clahe Clip",
+            "description": "CLAHE clip limit",
+            "default": 3.0
+          },
+          "clahe_tile_size": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Clahe Tile Size",
+            "description": "CLAHE tile grid size [width, height]",
+            "default": [
+              8,
+              8
+            ]
+          },
+          "use_ssr": {
+            "type": "boolean",
+            "title": "Use Ssr",
+            "description": "Use Single-Scale Retinex",
+            "default": false
+          },
+          "ssr_sigma": {
+            "type": "integer",
+            "title": "Ssr Sigma",
+            "description": "SSR sigma value",
+            "default": 80
+          },
+          "use_msr": {
+            "type": "boolean",
+            "title": "Use Msr",
+            "description": "Use Multi-Scale Retinex",
+            "default": false
+          },
+          "msr_sigmas": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Msr Sigmas",
+            "description": "MSR sigma values list",
+            "default": [
+              15,
+              80,
+              250
+            ]
+          },
+          "use_sharpen": {
+            "type": "boolean",
+            "title": "Use Sharpen",
+            "description": "Use sharpening",
+            "default": false
+          },
+          "sharpen_method": {
+            "type": "string",
+            "title": "Sharpen Method",
+            "description": "Sharpening method: 'unsharp' or 'laplacian'",
+            "default": "unsharp"
+          },
+          "sharpen_strength": {
+            "type": "number",
+            "title": "Sharpen Strength",
+            "description": "Sharpening strength (1.0 = normal, 2.0 = strong)",
+            "default": 1.0
+          },
+          "sharpen_kernel_size": {
+            "type": "integer",
+            "title": "Sharpen Kernel Size",
+            "description": "Kernel size for unsharp method",
+            "default": 5
+          },
+          "order": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Order",
+            "description": "Order of enhancement methods (e.g., ['gamma', 'msr', 'clahe', 'sharpen'])"
+          }
+        },
+        "type": "object",
+        "title": "EnhancementParams",
+        "description": "Enhancement parameters model",
+        "example": {
+          "clahe_clip": 2.5,
+          "clahe_tile_size": [
+            8,
+            8
+          ],
+          "gamma": 0.5,
+          "msr_sigmas": [
+            15,
+            80,
+            250
+          ],
+          "order": [
+            "gamma",
+            "msr",
+            "clahe"
+          ],
+          "sharpen_kernel_size": 5,
+          "sharpen_method": "unsharp",
+          "sharpen_strength": 1.0,
+          "use_clahe": true,
+          "use_gamma": true,
+          "use_msr": true,
+          "use_sharpen": false
+        }
+      },
       "ForgotPasswordRequest": {
         "properties": {
           "email": {
