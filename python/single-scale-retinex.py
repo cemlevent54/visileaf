@@ -34,6 +34,13 @@ def single_scale_retinex(img, sigma):
     # 4. Dinamik Aralık Sıkıştırma/Normalizasyon (Son İşlem)
     # İyileştirilmiş kontrast için log R bileşenini normalize et
     min_val, max_val, _, _ = cv2.minMaxLoc(log_retinex)
+    
+    # Sıfıra bölme hatasını önle: max_val == min_val durumunda
+    if max_val == min_val or abs(max_val - min_val) < 1e-10:
+        # Tüm değerler aynıysa, orijinal görüntüyü döndür
+        final_retinex = img.astype(np.uint8)
+        return final_retinex
+    
     normalized_retinex = (log_retinex - min_val) * (255.0 / (max_val - min_val))
     
     # 5. Doğrusal Alana Geri Dönüş

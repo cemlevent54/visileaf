@@ -94,11 +94,15 @@ def apply_gamma_to_image(img: np.ndarray, gamma: float = 0.5) -> np.ndarray:
     
     Args:
         img: BGR format image (numpy array)
-        gamma: Gamma value
+        gamma: Gamma value (must be > 0)
     
     Returns:
         Processed image
     """
+    # Validate gamma value
+    if gamma <= 0:
+        raise ValueError(f"Gamma value must be positive, got {gamma}")
+    
     table = np.array([((i / 255.0) ** gamma) * 255 
                       for i in np.arange(0, 256)]).astype("uint8")
     gamma_corrected_img = cv2.LUT(img, table)
@@ -107,7 +111,7 @@ def apply_gamma_to_image(img: np.ndarray, gamma: float = 0.5) -> np.ndarray:
 
 def apply_ssr_to_image(img: np.ndarray, sigma: int = 80) -> np.ndarray:
     """
-    Apply SSR to numpy array image.
+    Apply SSR to numpy array image with safe normalization.
     
     Args:
         img: BGR format image (numpy array)
@@ -121,17 +125,25 @@ def apply_ssr_to_image(img: np.ndarray, sigma: int = 80) -> np.ndarray:
     if _single_scale_retinex is None:
         raise RuntimeError(f"Single-scale retinex module not available: {_import_error}")
     
-    b, g, r = cv2.split(img)
-    b_retinex = _single_scale_retinex(b, sigma)
-    g_retinex = _single_scale_retinex(g, sigma)
-    r_retinex = _single_scale_retinex(r, sigma)
-    ssr_output = cv2.merge([b_retinex, g_retinex, r_retinex])
-    return ssr_output
+    # Validate sigma
+    if sigma <= 0:
+        raise ValueError(f"Sigma must be positive, got {sigma}")
+    
+    try:
+        b, g, r = cv2.split(img)
+        b_retinex = _single_scale_retinex(b, sigma)
+        g_retinex = _single_scale_retinex(g, sigma)
+        r_retinex = _single_scale_retinex(r, sigma)
+        ssr_output = cv2.merge([b_retinex, g_retinex, r_retinex])
+        return ssr_output
+    except ZeroDivisionError as e:
+        logger.error(f"SSR division by zero error: {e}. Sigma: {sigma}, Image shape: {img.shape}")
+        raise ValueError(f"SSR processing failed: division by zero. This may occur with uniform images. Try different parameters.")
 
 
 def apply_msr_to_image(img: np.ndarray, sigma_list: list = [15, 80, 250]) -> np.ndarray:
     """
-    Apply MSR to numpy array image.
+    Apply MSR to numpy array image with safe normalization.
     
     Args:
         img: BGR format image (numpy array)
@@ -145,12 +157,24 @@ def apply_msr_to_image(img: np.ndarray, sigma_list: list = [15, 80, 250]) -> np.
     if _multi_scale_retinex is None:
         raise RuntimeError(f"Multi-scale retinex module not available: {_import_error}")
     
-    b, g, r = cv2.split(img)
-    b_msr = _multi_scale_retinex(b, sigma_list)
-    g_msr = _multi_scale_retinex(g, sigma_list)
-    r_msr = _multi_scale_retinex(r, sigma_list)
-    msr_output = cv2.merge([b_msr, g_msr, r_msr])
-    return msr_output
+    # Validate sigma_list
+    if not sigma_list or len(sigma_list) == 0:
+        raise ValueError("MSR sigma_list cannot be empty")
+    
+    for sigma in sigma_list:
+        if sigma <= 0:
+            raise ValueError(f"All sigma values must be positive, got {sigma_list}")
+    
+    try:
+        b, g, r = cv2.split(img)
+        b_msr = _multi_scale_retinex(b, sigma_list)
+        g_msr = _multi_scale_retinex(g, sigma_list)
+        r_msr = _multi_scale_retinex(r, sigma_list)
+        msr_output = cv2.merge([b_msr, g_msr, r_msr])
+        return msr_output
+    except ZeroDivisionError as e:
+        logger.error(f"MSR division by zero error: {e}. Sigma list: {sigma_list}, Image shape: {img.shape}")
+        raise ValueError(f"MSR processing failed: division by zero. This may occur with uniform images or empty sigma list. Try different parameters.")
 
 
 def apply_sharpen_to_image(
@@ -238,6 +262,28 @@ class EnhancementService:
             
             if img is None:
                 raise ValueError("Invalid image format")
+            
+            # Validate parameters before processing
+            if use_gamma and gamma <= 0:
+                raise ValueError(f"Gamma value must be positive, got {gamma}")
+            if use_clahe:
+                if clahe_clip <= 0:
+                    raise ValueError(f"CLAHE clip limit must be positive, got {clahe_clip}")
+                if clahe_tile_size:
+                    if len(clahe_tile_size) != 2:
+                        raise ValueError(f"CLAHE tile size must have 2 elements, got {clahe_tile_size}")
+                    if clahe_tile_size[0] <= 0 or clahe_tile_size[1] <= 0:
+                        raise ValueError(f"CLAHE tile size values must be positive, got {clahe_tile_size}")
+            if use_ssr and ssr_sigma <= 0:
+                raise ValueError(f"SSR sigma must be positive, got {ssr_sigma}")
+            if use_msr:
+                if not msr_sigmas or len(msr_sigmas) == 0:
+                    raise ValueError("MSR sigma list cannot be empty")
+                for sigma in msr_sigmas:
+                    if sigma <= 0:
+                        raise ValueError(f"All MSR sigma values must be positive, got {msr_sigmas}")
+            if use_sharpen and sharpen_kernel_size <= 0:
+                raise ValueError(f"Sharpen kernel size must be positive, got {sharpen_kernel_size}")
             
             # Determine methods to apply
             methods_to_apply = []

@@ -8,6 +8,9 @@ interface InputProps {
   placeholder?: string
   required?: boolean
   error?: string
+  min?: number
+  max?: number
+  step?: number
 }
 
 function Input({
@@ -17,7 +20,10 @@ function Input({
   onChange,
   placeholder = '',
   required = false,
-  error
+  error,
+  min,
+  max,
+  step
 }: InputProps) {
   return (
     <div className="input-group">
@@ -33,6 +39,9 @@ function Input({
         onChange={onChange}
         placeholder={placeholder}
         required={required}
+        min={min}
+        max={max}
+        step={step}
       />
       {error && <span className="input-error-message">{error}</span>}
     </div>

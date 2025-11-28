@@ -24,6 +24,10 @@ def multi_scale_retinex(img, sigma_list):
     MSR_result = np.zeros_like(log_img)
     num_scales = len(sigma_list)
     
+    # Boş sigma listesi kontrolü
+    if num_scales == 0:
+        return img.astype(np.uint8)
+    
     # 2. Her Ölçek İçin SSR Uygulama ve Toplama
     for sigma in sigma_list:
         # Aydınlatma Tahmini (Gauss Konvolüsyonu)
@@ -39,6 +43,12 @@ def multi_scale_retinex(img, sigma_list):
     # 3. Dinamik Aralık Sıkıştırma/Normalizasyon
     # Renk tutarlılığı için bu adım MSR'de kritiktir.
     min_val, max_val, _, _ = cv2.minMaxLoc(MSR_result)
+    
+    # Sıfıra bölme hatasını önle: max_val == min_val durumunda
+    if max_val == min_val or abs(max_val - min_val) < 1e-10:
+        # Tüm değerler aynıysa, orijinal görüntüyü döndür
+        final_msr = img.astype(np.uint8)
+        return final_msr
     
     # Normalizasyon: [0, 255] arasına sığdır
     normalized_msr = (MSR_result - min_val) * (255.0 / (max_val - min_val))

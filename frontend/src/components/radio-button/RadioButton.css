@@ -1,0 +1,162 @@
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+    width: 100%;
+}
+
+.radio-label {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #213547;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.required {
+    color: #dc3545;
+    margin-left: 0.25rem;
+}
+
+.radio-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.radio-options-inline {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.radio-option.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.radio-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.radio-label-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s ease;
+}
+
+.radio-option.disabled .radio-label-option {
+    cursor: not-allowed;
+}
+
+.radio-custom {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 50%;
+    background: white;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.radio-inner {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #646cff;
+    opacity: 0;
+    transform: scale(0);
+    transition: all 0.2s ease;
+}
+
+.radio-input:checked+.radio-label-option .radio-custom {
+    border-color: #646cff;
+    background: white;
+}
+
+.radio-input:checked+.radio-label-option .radio-inner {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.radio-label-option:hover:not(.disabled) .radio-custom {
+    border-color: #646cff;
+}
+
+.radio-label-option.checked .radio-custom {
+    border-color: #646cff;
+}
+
+.radio-label-option.checked .radio-inner {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.radio-input:focus+.radio-label-option .radio-custom {
+    outline: 2px solid #646cff;
+    outline-offset: 2px;
+}
+
+.radio-input:disabled+.radio-label-option {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.radio-text {
+    font-size: 1rem;
+    color: #213547;
+    transition: color 0.2s ease;
+}
+
+.radio-input:checked+.radio-label-option .radio-text {
+    color: #646cff;
+    font-weight: 500;
+}
+
+.radio-error-message {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .radio-label {
+        color: rgba(255, 255, 255, 0.87);
+    }
+
+    .radio-custom {
+        background: #1a1a1a;
+        border-color: #444;
+    }
+
+    .radio-input:checked+.radio-label-option .radio-custom {
+        background: #1a1a1a;
+    }
+
+    .radio-text {
+        color: rgba(255, 255, 255, 0.87);
+    }
+
+    .radio-input:checked+.radio-label-option .radio-text {
+        color: #646cff;
+    }
+}

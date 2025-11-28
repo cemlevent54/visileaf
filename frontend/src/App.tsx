@@ -5,6 +5,7 @@ import Register from './pages/register/Register'
 import Login from './pages/login/Login'
 import ForgotPassword from './pages/forgot-password/ForgotPassword'
 import ResetPassword from './pages/reset-password/ResetPassword'
+import EnhanceYourImage from './pages/enhance-your-image/EnhanceYourImage'
 import { useTranslation } from './hooks/useTranslation'
 import './App.css'
 
@@ -65,8 +66,9 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/enhance-your-image" element={<EnhanceYourImage />} />
       </Routes>
     </Router>
     </LanguageProvider>
