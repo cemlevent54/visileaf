@@ -23,6 +23,24 @@ interface EnhancementParams {
   sharpen_kernel_size: number
   use_ssr: boolean
   ssr_sigma: number
+  // Eğitimlik temel filtreler
+  use_negative: boolean
+  use_threshold: boolean
+  threshold_value: number
+  use_gray_slice: boolean
+  gray_slice_low: number
+  gray_slice_high: number
+  use_bitplane: boolean
+  bitplane_bit: number
+  // Low-light özel modları
+  use_lowlight_lime: boolean
+  use_lowlight_dual: boolean
+  lowlight_gamma: number
+  lowlight_lambda: number
+  lowlight_sigma: number
+  lowlight_bc: number
+  lowlight_bs: number
+  lowlight_be: number
   order: string[]
 }
 
@@ -50,6 +68,24 @@ function EnhanceYourImage() {
     sharpen_kernel_size: 5,
     use_ssr: false,
     ssr_sigma: 80,
+    // Eğitimlik temel filtreler (varsayılan: kapalı)
+    use_negative: false,
+    use_threshold: false,
+    threshold_value: 128,
+    use_gray_slice: false,
+    gray_slice_low: 100,
+    gray_slice_high: 180,
+    use_bitplane: false,
+    bitplane_bit: 7,
+    // Low-light default parametreler (backend ile uyumlu)
+    use_lowlight_lime: false,
+    use_lowlight_dual: false,
+    lowlight_gamma: 0.6,
+    lowlight_lambda: 0.15,
+    lowlight_sigma: 3.0,
+    lowlight_bc: 1.0,
+    lowlight_bs: 1.0,
+    lowlight_be: 1.0,
     order: ['gamma', 'msr', 'clahe', 'sharpen']
   })
 
@@ -71,6 +107,12 @@ function EnhanceYourImage() {
     if (params.use_clahe) activeMethods.push('clahe')
     if (params.use_sharpen) activeMethods.push('sharpen')
     if (params.use_ssr) activeMethods.push('ssr')
+    if (params.use_negative) activeMethods.push('negative')
+    if (params.use_threshold) activeMethods.push('threshold')
+    if (params.use_gray_slice) activeMethods.push('gray_slice')
+    if (params.use_bitplane) activeMethods.push('bitplane')
+    if (params.use_lowlight_lime) activeMethods.push('lowlight_lime')
+    if (params.use_lowlight_dual) activeMethods.push('lowlight_dual')
     return activeMethods
   }
 
@@ -215,6 +257,24 @@ function EnhanceYourImage() {
         sharpen_kernel_size: params.sharpen_kernel_size,
         use_ssr: params.use_ssr,
         ssr_sigma: params.ssr_sigma,
+        // Eğitimlik temel filtreler
+        use_negative: params.use_negative,
+        use_threshold: params.use_threshold,
+        threshold_value: params.threshold_value,
+        use_gray_slice: params.use_gray_slice,
+        gray_slice_low: params.gray_slice_low,
+        gray_slice_high: params.gray_slice_high,
+        use_bitplane: params.use_bitplane,
+        bitplane_bit: params.bitplane_bit,
+        // Low-light parametreleri
+        use_lowlight_lime: params.use_lowlight_lime,
+        use_lowlight_dual: params.use_lowlight_dual,
+        lowlight_gamma: params.lowlight_gamma,
+        lowlight_lambda: params.lowlight_lambda,
+        lowlight_sigma: params.lowlight_sigma,
+        lowlight_bc: params.lowlight_bc,
+        lowlight_bs: params.lowlight_bs,
+        lowlight_be: params.lowlight_be,
         order: params.order
       }
 
@@ -613,6 +673,271 @@ function EnhanceYourImage() {
                         max={21}
                         step={2}
                       />
+                    </>
+                  )}
+                </div>
+
+                {/* Educational / Basic Filters */}
+                <div className="parameter-group">
+                  <h3 className="parameter-group-title">
+                    {t('enhance.educationalFilters') || 'Educational Filters'}
+                  </h3>
+                  <p className="order-hint">
+                    {t('enhance.educationalFiltersHint') ||
+                      'Simple teaching-oriented filters: negative, thresholding, gray-level slicing, bit-plane slicing.'}
+                  </p>
+                  <Checkbox
+                    label={t('enhance.useNegative') || 'Use Negative Image'}
+                    name="use_negative"
+                    value={params.use_negative ? 'checked' : ''}
+                    onChange={(value) => {
+                      const checked = value === 'checked'
+                      setParams((prev) => ({
+                        ...prev,
+                        use_negative: checked
+                      }))
+                      setTimeout(updateOrder, 0)
+                    }}
+                    single={true}
+                  />
+                  <Checkbox
+                    label={t('enhance.useThreshold') || 'Use Binary Threshold'}
+                    name="use_threshold"
+                    value={params.use_threshold ? 'checked' : ''}
+                    onChange={(value) => {
+                      const checked = value === 'checked'
+                      setParams((prev) => ({
+                        ...prev,
+                        use_threshold: checked
+                      }))
+                      setTimeout(updateOrder, 0)
+                    }}
+                    single={true}
+                  />
+                  {params.use_threshold && (
+                    <VolumeSlider
+                      label={t('enhance.thresholdValue') || 'Threshold Value'}
+                      value={params.threshold_value}
+                      onChange={(value) =>
+                        setParams((prev) => ({
+                          ...prev,
+                          threshold_value: Math.round(value)
+                        }))
+                      }
+                      min={0}
+                      max={255}
+                      step={1}
+                      showValue={true}
+                    />
+                  )}
+                  <Checkbox
+                    label={t('enhance.useGraySlice') || 'Use Gray-level Slicing'}
+                    name="use_gray_slice"
+                    value={params.use_gray_slice ? 'checked' : ''}
+                    onChange={(value) => {
+                      const checked = value === 'checked'
+                      setParams((prev) => ({
+                        ...prev,
+                        use_gray_slice: checked
+                      }))
+                      setTimeout(updateOrder, 0)
+                    }}
+                    single={true}
+                  />
+                  {params.use_gray_slice && (
+                    <div className="msr-sigmas-inputs">
+                      <Input
+                        label={t('enhance.graySliceLow') || 'Gray slice low'}
+                        type="number"
+                        value={params.gray_slice_low.toString()}
+                        onChange={(e) => {
+                          let val = parseInt(e.target.value) || 0
+                          if (val < 0) val = 0
+                          if (val > 255) val = 255
+                          setParams((prev) => ({
+                            ...prev,
+                            gray_slice_low: val
+                          }))
+                        }}
+                        placeholder="100"
+                      />
+                      <Input
+                        label={t('enhance.graySliceHigh') || 'Gray slice high'}
+                        type="number"
+                        value={params.gray_slice_high.toString()}
+                        onChange={(e) => {
+                          let val = parseInt(e.target.value) || 0
+                          if (val < 0) val = 0
+                          if (val > 255) val = 255
+                          setParams((prev) => ({
+                            ...prev,
+                            gray_slice_high: val
+                          }))
+                        }}
+                        placeholder="180"
+                      />
+                    </div>
+                  )}
+                  <Checkbox
+                    label={t('enhance.useBitplane') || 'Use Bit-plane Slicing'}
+                    name="use_bitplane"
+                    value={params.use_bitplane ? 'checked' : ''}
+                    onChange={(value) => {
+                      const checked = value === 'checked'
+                      setParams((prev) => ({
+                        ...prev,
+                        use_bitplane: checked
+                      }))
+                      setTimeout(updateOrder, 0)
+                    }}
+                    single={true}
+                  />
+                  {params.use_bitplane && (
+                    <VolumeSlider
+                      label={t('enhance.bitplaneBit') || 'Bit-plane bit (0-7)'}
+                      value={params.bitplane_bit}
+                      onChange={(value) =>
+                        setParams((prev) => ({
+                          ...prev,
+                          bitplane_bit: Math.round(Math.min(7, Math.max(0, value)))
+                        }))
+                      }
+                      min={0}
+                      max={7}
+                      step={1}
+                      showValue={true}
+                    />
+                  )}
+                </div>
+
+                {/* Low-light (LIME / DUAL approx) */}
+                <div className="parameter-group">
+                  <h3 className="parameter-group-title">{t('enhance.lowlightTitle') || 'Low-light Enhancement'}</h3>
+                  <p className="order-hint">
+                    {t('enhance.lowlightHint') ||
+                      'Low-light preset uses MSR + CLAHE + Gamma to approximate LIME/DUAL behaviour.'}
+                  </p>
+                  <Checkbox
+                    label={t('enhance.useLowlightLime') || 'Use Low-light (LIME-like)'}
+                    name="use_lowlight_lime"
+                    value={params.use_lowlight_lime ? 'checked' : ''}
+                    onChange={(value) => {
+                      const checked = value === 'checked'
+                      setParams((prev) => ({
+                        ...prev,
+                        use_lowlight_lime: checked,
+                        // Aynı anda hem LIME hem DUAL aktif olmasın; kullanıcı isterse elle açabilir
+                        use_lowlight_dual: checked ? false : prev.use_lowlight_dual
+                      }))
+                      setTimeout(updateOrder, 0)
+                    }}
+                    single={true}
+                  />
+                  <Checkbox
+                    label={t('enhance.useLowlightDual') || 'Use Low-light (DUAL-like)'}
+                    name="use_lowlight_dual"
+                    value={params.use_lowlight_dual ? 'checked' : ''}
+                    onChange={(value) => {
+                      const checked = value === 'checked'
+                      setParams((prev) => ({
+                        ...prev,
+                        use_lowlight_dual: checked,
+                        // Aynı anda hem LIME hem DUAL aktif olmasın; kullanıcı isterse elle açabilir
+                        use_lowlight_lime: checked ? false : prev.use_lowlight_lime
+                      }))
+                      setTimeout(updateOrder, 0)
+                    }}
+                    single={true}
+                  />
+
+                  {(params.use_lowlight_lime || params.use_lowlight_dual) && (
+                    <>
+                      <VolumeSlider
+                        label={t('enhance.lowlightGamma') || 'Low-light Gamma'}
+                        value={params.lowlight_gamma}
+                        onChange={(value) =>
+                          setParams((prev) => ({
+                            ...prev,
+                            lowlight_gamma: value
+                          }))
+                        }
+                        min={0.1}
+                        max={2.0}
+                        step={0.1}
+                        showValue={true}
+                      />
+                      <VolumeSlider
+                        label={t('enhance.lowlightLambda') || 'Low-light λ (lambda)'}
+                        value={params.lowlight_lambda}
+                        onChange={(value) =>
+                          setParams((prev) => ({
+                            ...prev,
+                            lowlight_lambda: value
+                          }))
+                        }
+                        min={0.01}
+                        max={1.0}
+                        step={0.01}
+                        showValue={true}
+                      />
+                      <VolumeSlider
+                        label={t('enhance.lowlightSigma') || 'Low-light σ (sigma)'}
+                        value={params.lowlight_sigma}
+                        onChange={(value) =>
+                          setParams((prev) => ({
+                            ...prev,
+                            lowlight_sigma: value
+                          }))
+                        }
+                        min={0.5}
+                        max={10.0}
+                        step={0.5}
+                        showValue={true}
+                      />
+                      <div className="msr-sigmas-inputs">
+                        <Input
+                          label={t('enhance.lowlightBc') || 'Contrast weight (bc)'}
+                          type="number"
+                          value={params.lowlight_bc.toString()}
+                          step={0.1}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value)
+                            setParams((prev) => ({
+                              ...prev,
+                              lowlight_bc: isNaN(val) ? 1.0 : val
+                            }))
+                          }}
+                          placeholder="1.0"
+                        />
+                        <Input
+                          label={t('enhance.lowlightBs') || 'Saturation weight (bs)'}
+                          type="number"
+                          value={params.lowlight_bs.toString()}
+                          step={0.1}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value)
+                            setParams((prev) => ({
+                              ...prev,
+                              lowlight_bs: isNaN(val) ? 1.0 : val
+                            }))
+                          }}
+                          placeholder="1.0"
+                        />
+                        <Input
+                          label={t('enhance.lowlightBe') || 'Well-exposedness weight (be)'}
+                          type="number"
+                          value={params.lowlight_be.toString()}
+                          step={0.1}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value)
+                            setParams((prev) => ({
+                              ...prev,
+                              lowlight_be: isNaN(val) ? 1.0 : val
+                            }))
+                          }}
+                          placeholder="1.0"
+                        />
+                      </div>
                     </>
                   )}
                 </div>

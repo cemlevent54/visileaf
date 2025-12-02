@@ -42,7 +42,15 @@ async def enhance_image(
         "sharpen_method": "unsharp",
         "sharpen_strength": 1.0,
         "sharpen_kernel_size": 5,
-        "order": ["gamma", "msr", "clahe"]
+        "order": ["gamma", "msr", "clahe"],
+        "use_lowlight_lime": true,
+        "use_lowlight_dual": false,
+        "lowlight_gamma": 0.6,
+        "lowlight_lambda": 0.15,
+        "lowlight_sigma": 3.0,
+        "lowlight_bc": 1.0,
+        "lowlight_bs": 1.0,
+        "lowlight_be": 1.0
     }
     ```
     

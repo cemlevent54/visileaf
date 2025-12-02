@@ -37,9 +37,80 @@ class EnhancementParams(BaseModel):
         description="Kernel size for unsharp method"
     )
     
+    # Eğitimlik temel dönüşümler
+    use_negative: bool = Field(
+        default=False,
+        description="Apply classic negative image filter (invert intensities)"
+    )
+    use_threshold: bool = Field(
+        default=False,
+        description="Apply simple binary thresholding on grayscale image"
+    )
+    threshold_value: int = Field(
+        default=128,
+        description="Threshold value for binary thresholding (0-255)"
+    )
+    use_gray_slice: bool = Field(
+        default=False,
+        description="Apply gray-level slicing to highlight a specific intensity range"
+    )
+    gray_slice_low: int = Field(
+        default=100,
+        description="Lower bound for gray-level slicing (0-255)"
+    )
+    gray_slice_high: int = Field(
+        default=180,
+        description="Upper bound for gray-level slicing (0-255)"
+    )
+    use_bitplane: bool = Field(
+        default=False,
+        description="Apply bit-plane slicing on grayscale image"
+    )
+    bitplane_bit: int = Field(
+        default=7,
+        description="Bit index for bit-plane slicing (0-7)"
+    )
+    
     order: Optional[List[str]] = Field(
         default=None, 
         description="Order of enhancement methods (e.g., ['gamma', 'msr', 'clahe', 'sharpen'])"
+    )
+
+    # Low-light özel modları (LIME / DUAL benzeri)
+    use_lowlight_lime: bool = Field(
+        default=False,
+        description="Enable low-light enhancement (LIME-like, illumination-map-based)"
+    )
+    use_lowlight_dual: bool = Field(
+        default=False,
+        description="Enable low-light enhancement (DUAL-like, for under- and over-exposed regions)"
+    )
+
+    # Low-light parametreleri (Low-light-Image-Enhancement reposundaki argümanlara benzer)
+    lowlight_gamma: float = Field(
+        default=0.6,
+        description="Low-light gamma correction parameter (similar to demo.py --gamma)"
+    )
+    lowlight_lambda: float = Field(
+        default=0.15,
+        alias="lowlight_lambda_",
+        description="Weight for illumination refinement (similar to demo.py --lambda_)"
+    )
+    lowlight_sigma: float = Field(
+        default=3.0,
+        description="Spatial std for Gaussian weights (similar to demo.py --sigma)"
+    )
+    lowlight_bc: float = Field(
+        default=1.0,
+        description="Weight for Mertens contrast measure (similar to demo.py -bc)"
+    )
+    lowlight_bs: float = Field(
+        default=1.0,
+        description="Weight for Mertens saturation measure (similar to demo.py -bs)"
+    )
+    lowlight_be: float = Field(
+        default=1.0,
+        description="Weight for Mertens well-exposedness measure (similar to demo.py -be)"
     )
     
     class Config:
@@ -56,7 +127,23 @@ class EnhancementParams(BaseModel):
                 "sharpen_method": "unsharp",
                 "sharpen_strength": 1.0,
                 "sharpen_kernel_size": 5,
-                "order": ["gamma", "msr", "clahe"]
+                "use_negative": False,
+                "use_threshold": False,
+                "threshold_value": 128,
+                "use_gray_slice": False,
+                "gray_slice_low": 100,
+                "gray_slice_high": 180,
+                "use_bitplane": False,
+                "bitplane_bit": 7,
+                "order": ["gamma", "msr", "clahe"],
+                "use_lowlight_lime": True,
+                "use_lowlight_dual": False,
+                "lowlight_gamma": 0.6,
+                "lowlight_lambda": 0.15,
+                "lowlight_sigma": 3.0,
+                "lowlight_bc": 1.0,
+                "lowlight_bs": 1.0,
+                "lowlight_be": 1.0
             }
         }
 

@@ -14,6 +14,24 @@ interface EnhancementParams {
     sharpen_kernel_size?: number
     use_ssr?: boolean
     ssr_sigma?: number
+    // Low-light özel alanlar
+    use_lowlight_lime?: boolean
+    use_lowlight_dual?: boolean
+    lowlight_gamma?: number
+    lowlight_lambda?: number
+    lowlight_sigma?: number
+    lowlight_bc?: number
+    lowlight_bs?: number
+    lowlight_be?: number
+    // Eğitimlik temel filtreler
+    use_negative?: boolean
+    use_threshold?: boolean
+    threshold_value?: number
+    use_gray_slice?: boolean
+    gray_slice_low?: number
+    gray_slice_high?: number
+    use_bitplane?: boolean
+    bitplane_bit?: number
     order?: string[]
 }
 

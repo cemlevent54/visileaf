@@ -161,7 +161,33 @@
             "msr": "MSR",
             "clahe": "CLAHE",
             "sharpen": "Keskinleştirme",
-            "ssr": "SSR"
-        }
+            "ssr": "SSR",
+            "lowlight_lime": "Low-light (LIME benzeri)",
+            "lowlight_dual": "Low-light (DUAL benzeri)",
+            "negative": "Negatif Görüntü",
+            "threshold": "Binary Eşikleme",
+            "gray_slice": "Gri Seviye Dilimleme",
+            "bitplane": "Bit-plane Dilimleme"
+        },
+        "lowlightTitle": "Düşük Işık İyileştirme",
+        "lowlightHint": "Low-light presetleri, mevcut MSR + CLAHE + Gamma hattını kullanarak LIME / DUAL davranışını yaklaşıklar. Özellikle çok karanlık veya karışık pozlamalı görüntüler için idealdir.",
+        "useLowlightLime": "Low-light (LIME benzeri) kullan",
+        "useLowlightDual": "Low-light (DUAL benzeri) kullan",
+        "lowlightGamma": "Low-light Gamma",
+        "lowlightLambda": "Low-light λ (lambda)",
+        "lowlightSigma": "Low-light σ (sigma)",
+        "lowlightBc": "Kontrast ağırlığı (bc)",
+        "lowlightBs": "Doygunluk ağırlığı (bs)",
+        "lowlightBe": "İyi pozlanmışlık ağırlığı (be)",
+        "educationalFilters": "Eğitimlik Filtreler",
+        "educationalFiltersHint": "Basit, öğretici filtreler: negatif, eşikleme, gri seviye dilimleme, bit-plane dilimleme.",
+        "useNegative": "Negatif görüntü uygula",
+        "useThreshold": "Binary eşikleme kullan",
+        "thresholdValue": "Eşik değeri",
+        "useGraySlice": "Gri seviye dilimleme kullan",
+        "graySliceLow": "Dilim alt sınırı",
+        "graySliceHigh": "Dilim üst sınırı",
+        "useBitplane": "Bit-plane dilimleme kullan",
+        "bitplaneBit": "Bit-plane biti (0-7)"
     }
 }

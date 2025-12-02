@@ -323,7 +323,7 @@
           "enhancement"
         ],
         "summary": "Enhance Image",
-        "description": "Enhance image with specified methods.\n\n- **image**: Image file (JPEG, PNG, etc.)\n- **params_json**: Enhancement parameters as JSON string\n\nExample JSON:\n```json\n{\n    \"use_gamma\": true,\n    \"gamma\": 0.5,\n    \"use_msr\": true,\n    \"msr_sigmas\": [15, 80, 250],\n    \"use_clahe\": true,\n    \"clahe_clip\": 2.5,\n    \"clahe_tile_size\": [8, 8],\n    \"use_ssr\": false,\n    \"ssr_sigma\": 80,\n    \"use_sharpen\": false,\n    \"sharpen_method\": \"unsharp\",\n    \"sharpen_strength\": 1.0,\n    \"sharpen_kernel_size\": 5,\n    \"order\": [\"gamma\", \"msr\", \"clahe\"]\n}\n```\n\nReturns:\n    Enhanced image as downloadable JPEG file",
+        "description": "Enhance image with specified methods.\n\n- **image**: Image file (JPEG, PNG, etc.)\n- **params_json**: Enhancement parameters as JSON string\n\nExample JSON:\n```json\n{\n    \"use_gamma\": true,\n    \"gamma\": 0.5,\n    \"use_msr\": true,\n    \"msr_sigmas\": [15, 80, 250],\n    \"use_clahe\": true,\n    \"clahe_clip\": 2.5,\n    \"clahe_tile_size\": [8, 8],\n    \"use_ssr\": false,\n    \"ssr_sigma\": 80,\n    \"use_sharpen\": false,\n    \"sharpen_method\": \"unsharp\",\n    \"sharpen_strength\": 1.0,\n    \"sharpen_kernel_size\": 5,\n    \"order\": [\"gamma\", \"msr\", \"clahe\"],\n    \"use_lowlight_lime\": true,\n    \"use_lowlight_dual\": false,\n    \"lowlight_gamma\": 0.6,\n    \"lowlight_lambda\": 0.15,\n    \"lowlight_sigma\": 3.0,\n    \"lowlight_bc\": 1.0,\n    \"lowlight_bs\": 1.0,\n    \"lowlight_be\": 1.0\n}\n```\n\nReturns:\n    Enhanced image as downloadable JPEG file",
         "operationId": "enhance_image_api_enhancement_enhance_post",
         "requestBody": {
           "content": {
@@ -541,6 +541,54 @@
             "description": "Kernel size for unsharp method",
             "default": 5
           },
+          "use_negative": {
+            "type": "boolean",
+            "title": "Use Negative",
+            "description": "Apply classic negative image filter (invert intensities)",
+            "default": false
+          },
+          "use_threshold": {
+            "type": "boolean",
+            "title": "Use Threshold",
+            "description": "Apply simple binary thresholding on grayscale image",
+            "default": false
+          },
+          "threshold_value": {
+            "type": "integer",
+            "title": "Threshold Value",
+            "description": "Threshold value for binary thresholding (0-255)",
+            "default": 128
+          },
+          "use_gray_slice": {
+            "type": "boolean",
+            "title": "Use Gray Slice",
+            "description": "Apply gray-level slicing to highlight a specific intensity range",
+            "default": false
+          },
+          "gray_slice_low": {
+            "type": "integer",
+            "title": "Gray Slice Low",
+            "description": "Lower bound for gray-level slicing (0-255)",
+            "default": 100
+          },
+          "gray_slice_high": {
+            "type": "integer",
+            "title": "Gray Slice High",
+            "description": "Upper bound for gray-level slicing (0-255)",
+            "default": 180
+          },
+          "use_bitplane": {
+            "type": "boolean",
+            "title": "Use Bitplane",
+            "description": "Apply bit-plane slicing on grayscale image",
+            "default": false
+          },
+          "bitplane_bit": {
+            "type": "integer",
+            "title": "Bitplane Bit",
+            "description": "Bit index for bit-plane slicing (0-7)",
+            "default": 7
+          },
           "order": {
             "anyOf": [
               {
@@ -555,18 +603,75 @@
             ],
             "title": "Order",
             "description": "Order of enhancement methods (e.g., ['gamma', 'msr', 'clahe', 'sharpen'])"
+          },
+          "use_lowlight_lime": {
+            "type": "boolean",
+            "title": "Use Lowlight Lime",
+            "description": "Enable low-light enhancement (LIME-like, illumination-map-based)",
+            "default": false
+          },
+          "use_lowlight_dual": {
+            "type": "boolean",
+            "title": "Use Lowlight Dual",
+            "description": "Enable low-light enhancement (DUAL-like, for under- and over-exposed regions)",
+            "default": false
+          },
+          "lowlight_gamma": {
+            "type": "number",
+            "title": "Lowlight Gamma",
+            "description": "Low-light gamma correction parameter (similar to demo.py --gamma)",
+            "default": 0.6
+          },
+          "lowlight_lambda_": {
+            "type": "number",
+            "title": "Lowlight Lambda",
+            "description": "Weight for illumination refinement (similar to demo.py --lambda_)",
+            "default": 0.15
+          },
+          "lowlight_sigma": {
+            "type": "number",
+            "title": "Lowlight Sigma",
+            "description": "Spatial std for Gaussian weights (similar to demo.py --sigma)",
+            "default": 3.0
+          },
+          "lowlight_bc": {
+            "type": "number",
+            "title": "Lowlight Bc",
+            "description": "Weight for Mertens contrast measure (similar to demo.py -bc)",
+            "default": 1.0
+          },
+          "lowlight_bs": {
+            "type": "number",
+            "title": "Lowlight Bs",
+            "description": "Weight for Mertens saturation measure (similar to demo.py -bs)",
+            "default": 1.0
+          },
+          "lowlight_be": {
+            "type": "number",
+            "title": "Lowlight Be",
+            "description": "Weight for Mertens well-exposedness measure (similar to demo.py -be)",
+            "default": 1.0
           }
         },
         "type": "object",
         "title": "EnhancementParams",
         "description": "Enhancement parameters model",
         "example": {
+          "bitplane_bit": 7,
           "clahe_clip": 2.5,
           "clahe_tile_size": [
             8,
             8
           ],
           "gamma": 0.5,
+          "gray_slice_high": 180,
+          "gray_slice_low": 100,
+          "lowlight_bc": 1.0,
+          "lowlight_be": 1.0,
+          "lowlight_bs": 1.0,
+          "lowlight_gamma": 0.6,
+          "lowlight_lambda": 0.15,
+          "lowlight_sigma": 3.0,
           "msr_sigmas": [
             15,
             80,
@@ -580,10 +685,17 @@
           "sharpen_kernel_size": 5,
           "sharpen_method": "unsharp",
           "sharpen_strength": 1.0,
+          "threshold_value": 128,
+          "use_bitplane": false,
           "use_clahe": true,
           "use_gamma": true,
+          "use_gray_slice": false,
+          "use_lowlight_dual": false,
+          "use_lowlight_lime": true,
           "use_msr": true,
-          "use_sharpen": false
+          "use_negative": false,
+          "use_sharpen": false,
+          "use_threshold": false
         }
       },
       "ForgotPasswordRequest": {

@@ -59,6 +59,24 @@ class EnhancementController:
                 sharpen_method=params.sharpen_method,
                 sharpen_strength=params.sharpen_strength,
                 sharpen_kernel_size=params.sharpen_kernel_size,
+                # Eğitimlik temel dönüşümler
+                use_negative=params.use_negative,
+                use_threshold=params.use_threshold,
+                threshold_value=params.threshold_value,
+                use_gray_slice=params.use_gray_slice,
+                gray_slice_low=params.gray_slice_low,
+                gray_slice_high=params.gray_slice_high,
+                use_bitplane=params.use_bitplane,
+                bitplane_bit=params.bitplane_bit,
+                # Low-light özel modları
+                use_lowlight_lime=params.use_lowlight_lime,
+                use_lowlight_dual=params.use_lowlight_dual,
+                lowlight_gamma=params.lowlight_gamma,
+                lowlight_lambda=params.lowlight_lambda,
+                lowlight_sigma=params.lowlight_sigma,
+                lowlight_bc=params.lowlight_bc,
+                lowlight_bs=params.lowlight_bs,
+                lowlight_be=params.lowlight_be,
                 order=params.order
             )
             

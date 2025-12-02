@@ -161,7 +161,33 @@
             "msr": "MSR",
             "clahe": "CLAHE",
             "sharpen": "Sharpen",
-            "ssr": "SSR"
-        }
+            "ssr": "SSR",
+            "lowlight_lime": "Low-light (LIME-like)",
+            "lowlight_dual": "Low-light (DUAL-like)",
+            "negative": "Negative Image",
+            "threshold": "Binary Thresholding",
+            "gray_slice": "Gray-level Slicing",
+            "bitplane": "Bit-plane Slicing"
+        },
+        "lowlightTitle": "Low-light Enhancement",
+        "lowlightHint": "Low-light presets approximate LIME / DUAL behaviour using the existing MSR + CLAHE + Gamma pipeline. Ideal for very dark or mixed exposure images.",
+        "useLowlightLime": "Use Low-light (LIME-like)",
+        "useLowlightDual": "Use Low-light (DUAL-like)",
+        "lowlightGamma": "Low-light Gamma",
+        "lowlightLambda": "Low-light λ (lambda)",
+        "lowlightSigma": "Low-light σ (sigma)",
+        "lowlightBc": "Contrast weight (bc)",
+        "lowlightBs": "Saturation weight (bs)",
+        "lowlightBe": "Well-exposedness weight (be)",
+        "educationalFilters": "Educational Filters",
+        "educationalFiltersHint": "Simple teaching-oriented filters: negative, thresholding, gray-level slicing, bit-plane slicing.",
+        "useNegative": "Apply negative image",
+        "useThreshold": "Use binary threshold",
+        "thresholdValue": "Threshold value",
+        "useGraySlice": "Use gray-level slicing",
+        "graySliceLow": "Slice lower bound",
+        "graySliceHigh": "Slice upper bound",
+        "useBitplane": "Use bit-plane slicing",
+        "bitplaneBit": "Bit-plane bit (0-7)"
     }
 }
