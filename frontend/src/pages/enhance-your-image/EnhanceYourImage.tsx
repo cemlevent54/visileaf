@@ -32,6 +32,10 @@ interface EnhancementParams {
   gray_slice_high: number
   use_bitplane: boolean
   bitplane_bit: number
+  use_denoise: boolean
+  denoise_strength: number
+  use_dcp: boolean
+  use_dcp_guided: boolean
   // Low-light özel modları
   use_lowlight_lime: boolean
   use_lowlight_dual: boolean
@@ -50,11 +54,12 @@ function EnhanceYourImage() {
   const [inputImagePreview, setInputImagePreview] = useState<string | null>(null)
   const [outputImage, setOutputImage] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [loadingDcp, setLoadingDcp] = useState(false)
+  const [loadingDcpGuided, setLoadingDcpGuided] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
 
-  // Enhancement parameters state
-  const [params, setParams] = useState<EnhancementParams>({
+  const INITIAL_PARAMS: EnhancementParams = {
     use_gamma: true,
     gamma: 0.5,
     use_msr: true,
@@ -77,6 +82,10 @@ function EnhanceYourImage() {
     gray_slice_high: 180,
     use_bitplane: false,
     bitplane_bit: 7,
+    use_denoise: false,
+    denoise_strength: 3.0,
+    use_dcp: false,
+    use_dcp_guided: false,
     // Low-light default parametreler (backend ile uyumlu)
     use_lowlight_lime: false,
     use_lowlight_dual: false,
@@ -87,7 +96,10 @@ function EnhanceYourImage() {
     lowlight_bs: 1.0,
     lowlight_be: 1.0,
     order: ['gamma', 'msr', 'clahe', 'sharpen']
-  })
+  }
+
+  // Enhancement parameters state
+  const [params, setParams] = useState<EnhancementParams>(INITIAL_PARAMS)
 
   const [snackbar, setSnackbar] = useState<{
     isOpen: boolean
@@ -111,6 +123,9 @@ function EnhanceYourImage() {
     if (params.use_threshold) activeMethods.push('threshold')
     if (params.use_gray_slice) activeMethods.push('gray_slice')
     if (params.use_bitplane) activeMethods.push('bitplane')
+    if (params.use_denoise) activeMethods.push('denoise')
+    if (params.use_dcp) activeMethods.push('dcp')
+    if (params.use_dcp_guided) activeMethods.push('dcp_guided')
     if (params.use_lowlight_lime) activeMethods.push('lowlight_lime')
     if (params.use_lowlight_dual) activeMethods.push('lowlight_dual')
     return activeMethods
@@ -266,6 +281,10 @@ function EnhanceYourImage() {
         gray_slice_high: params.gray_slice_high,
         use_bitplane: params.use_bitplane,
         bitplane_bit: params.bitplane_bit,
+        use_denoise: params.use_denoise,
+        denoise_strength: params.denoise_strength,
+        use_dcp: params.use_dcp,
+        use_dcp_guided: params.use_dcp_guided,
         // Low-light parametreleri
         use_lowlight_lime: params.use_lowlight_lime,
         use_lowlight_dual: params.use_lowlight_dual,
@@ -297,6 +316,76 @@ function EnhanceYourImage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleEnhanceWithDcp = async () => {
+    if (!inputImage) {
+      setSnackbar({
+        isOpen: true,
+        message: t('enhance.noImageSelected'),
+        type: 'warning'
+      })
+      return
+    }
+
+    setLoadingDcp(true)
+    setSnackbar({ isOpen: false, message: '', type: 'info' })
+
+    try {
+      const enhancedImageBlob = await enhancementService.enhanceImageWithDcp(inputImage, params)
+      const imageUrl = URL.createObjectURL(enhancedImageBlob)
+      setOutputImage(imageUrl)
+
+      setSnackbar({
+        isOpen: true,
+        message: t('enhance.success'),
+        type: 'success'
+      })
+    } catch (error: any) {
+      const errorMessage = error.message || t('enhance.errorOccurred')
+      setSnackbar({
+        isOpen: true,
+        message: errorMessage,
+        type: 'error'
+      })
+    } finally {
+      setLoadingDcp(false)
+    }
+  }
+
+  const handleEnhanceWithDcpGuided = async () => {
+    if (!inputImage) {
+      setSnackbar({
+        isOpen: true,
+        message: t('enhance.noImageSelected'),
+        type: 'warning'
+      })
+      return
+    }
+
+    setLoadingDcpGuided(true)
+    setSnackbar({ isOpen: false, message: '', type: 'info' })
+
+    try {
+      const enhancedImageBlob = await enhancementService.enhanceImageWithDcpGuided(inputImage, params)
+      const imageUrl = URL.createObjectURL(enhancedImageBlob)
+      setOutputImage(imageUrl)
+
+      setSnackbar({
+        isOpen: true,
+        message: t('enhance.success'),
+        type: 'success'
+      })
+    } catch (error: any) {
+      const errorMessage = error.message || t('enhance.errorOccurred')
+      setSnackbar({
+        isOpen: true,
+        message: errorMessage,
+        type: 'error'
+      })
+    } finally {
+      setLoadingDcpGuided(false)
     }
   }
 
@@ -415,13 +504,54 @@ function EnhanceYourImage() {
 
               {/* Action Button */}
               <div className="action-section">
-                <button
-                  className="enhance-button"
-                  onClick={handleEnhance}
-                  disabled={!inputImage || loading}
-                >
-                  {loading ? t('enhance.processing') : t('enhance.enhanceButton')}
-                </button>
+                <div className="enhance-buttons">
+                  <button
+                    className="enhance-button"
+                    onClick={handleEnhance}
+                    disabled={
+                      !inputImage ||
+                      loading ||
+                      loadingDcp ||
+                      loadingDcpGuided ||
+                      params.use_dcp ||
+                      params.use_dcp_guided
+                    }
+                  >
+                    {loading ? t('enhance.processing') : t('enhance.enhanceButton')}
+                  </button>
+                  <button
+                    className="enhance-button secondary"
+                    onClick={handleEnhanceWithDcp}
+                    disabled={
+                      !inputImage ||
+                      loading ||
+                      loadingDcp ||
+                      loadingDcpGuided ||
+                      !params.use_dcp ||
+                      params.use_dcp_guided
+                    }
+                  >
+                    {loadingDcp
+                      ? t('enhance.processing')
+                      : t('enhance.enhanceWithDcp') || 'Enhance with DCP'}
+                  </button>
+                  <button
+                    className="enhance-button secondary"
+                    onClick={handleEnhanceWithDcpGuided}
+                    disabled={
+                      !inputImage ||
+                      loading ||
+                      loadingDcp ||
+                      loadingDcpGuided ||
+                      !params.use_dcp_guided ||
+                      params.use_dcp
+                    }
+                  >
+                    {loadingDcpGuided
+                      ? t('enhance.processing')
+                      : t('enhance.enhanceWithDcpGuided') || 'Enhance with DCP + Guided Filter'}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -942,6 +1072,75 @@ function EnhanceYourImage() {
                   )}
                 </div>
 
+                {/* DCP-based Enhancements */}
+                <div className="parameter-group">
+                  <h3 className="parameter-group-title">
+                    {t('enhance.dcpTitle') || 'DCP-based Low-light'}
+                  </h3>
+                  <p className="order-hint">
+                    {t('enhance.dcpHint') ||
+                      'Dark Channel Prior presets (classic and guided filter).'}
+                  </p>
+                  <Checkbox
+                    label={t('enhance.useDcp') || 'Use DCP'}
+                    name="use_dcp"
+                    value={params.use_dcp ? 'checked' : ''}
+                    onChange={(value) => {
+                      const checked = value === 'checked'
+                      setParams((prev) => ({
+                        ...prev,
+                        use_dcp: checked
+                      }))
+                      setTimeout(updateOrder, 0)
+                    }}
+                    single={true}
+                  />
+                  <Checkbox
+                    label={t('enhance.useDcpGuided') || 'Use DCP + Guided Filter'}
+                    name="use_dcp_guided"
+                    value={params.use_dcp_guided ? 'checked' : ''}
+                    onChange={(value) => {
+                      const checked = value === 'checked'
+                      setParams((prev) => ({
+                        ...prev,
+                        use_dcp_guided: checked
+                      }))
+                      setTimeout(updateOrder, 0)
+                    }}
+                    single={true}
+                  />
+                  <Checkbox
+                    label={t('enhance.useDenoise') || 'Use Denoise (Noise Reduction)'}
+                    name="use_denoise"
+                    value={params.use_denoise ? 'checked' : ''}
+                    onChange={(value) => {
+                      const checked = value === 'checked'
+                      setParams((prev) => ({
+                        ...prev,
+                        use_denoise: checked
+                      }))
+                      setTimeout(updateOrder, 0)
+                    }}
+                    single={true}
+                  />
+                  {params.use_denoise && (
+                    <VolumeSlider
+                      label={t('enhance.denoiseStrength') || 'Denoise strength'}
+                      value={params.denoise_strength}
+                      onChange={(value) =>
+                        setParams((prev) => ({
+                          ...prev,
+                          denoise_strength: value
+                        }))
+                      }
+                      min={1.0}
+                      max={10.0}
+                      step={0.5}
+                      showValue={true}
+                    />
+                  )}
+                </div>
+
                 {/* Order */}
                 {activeMethods.length > 0 && (
                   <div className="parameter-group">
@@ -966,8 +1165,8 @@ function EnhanceYourImage() {
                     <button
                       className="order-reset-button"
                       onClick={() => {
-                        const newOrder = getActiveMethods()
-                        setParams(prev => ({ ...prev, order: newOrder }))
+                        // Tüm seçimleri ve sıralamayı başlangıç haline döndür
+                        setParams(INITIAL_PARAMS)
                       }}
                     >
                       {t('enhance.resetOrder')}

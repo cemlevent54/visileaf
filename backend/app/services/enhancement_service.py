@@ -21,6 +21,10 @@ _retinex_import_error = None
 _lowlight_module = None
 _lowlight_import_error = None
 
+# Dark Channel Prior tabanlı low-light enhancement modülü
+_dcp_module = None
+_dcp_import_error = None
+
 
 def _get_python_dir():
     """Python klasörünü döndürür (lazy initialization)"""
@@ -97,6 +101,35 @@ def _load_lowlight_module():
         _lowlight_import_error = str(e)
         logger.warning(f"Low-light LIME/DUAL module could not be imported: {e}")
         _lowlight_module = None
+
+
+def _load_dcp_module():
+    """
+    Dark Channel Prior (DCP) modülünü lazy olarak yükler.
+    python/dark_channel_prior.py içindeki enhance_low_light_with_dcp fonksiyonunu kullanır.
+    """
+    global _dcp_module, _dcp_import_error
+
+    if _dcp_module is not None or _dcp_import_error is not None:
+        return
+
+    try:
+        python_dir = _get_python_dir()
+        import importlib.util
+
+        dcp_spec = importlib.util.spec_from_file_location(
+            "dark_channel_prior",
+            python_dir / "dark_channel_prior.py",
+        )
+        dcp_module = importlib.util.module_from_spec(dcp_spec)
+        dcp_spec.loader.exec_module(dcp_module)
+        _dcp_module = dcp_module
+
+        logger.info("Dark Channel Prior module loaded successfully")
+    except Exception as e:
+        _dcp_import_error = str(e)
+        logger.warning(f"Dark Channel Prior module could not be imported: {e}")
+        _dcp_module = None
 
 
 def apply_clahe_to_image(img: np.ndarray, clip_limit: float = 2.0, tile_grid_size: tuple = (8, 8)) -> np.ndarray:
@@ -291,6 +324,42 @@ def apply_lowlight_dual(
     return enhanced
 
 
+def apply_dcp_lowlight(img: np.ndarray) -> np.ndarray:
+    """
+    Dark Channel Prior tabanlı low-light enhancement uygular.
+    python/dark_channel_prior.py içindeki enhance_low_light_with_dcp fonksiyonunu çağırır.
+    """
+    _load_dcp_module()
+
+    if _dcp_module is None:
+        raise RuntimeError(
+            f"Dark Channel Prior module not available: {_dcp_import_error}"
+        )
+
+    logger.debug("Applying Dark Channel Prior based low-light enhancement")
+
+    enhanced = _dcp_module.enhance_low_light_with_dcp(img)
+    return enhanced
+
+
+def apply_dcp_lowlight_guided(img: np.ndarray) -> np.ndarray:
+    """
+    Dark Channel Prior + Guided Filter tabanlı gelişmiş low-light enhancement uygular.
+    python/dark_channel_prior.py içindeki enhance_low_light_with_dcp_guided fonksiyonunu çağırır.
+    """
+    _load_dcp_module()
+
+    if _dcp_module is None:
+        raise RuntimeError(
+            f"Dark Channel Prior module not available: {_dcp_import_error}"
+        )
+
+    logger.debug("Applying Dark Channel Prior + Guided Filter based low-light enhancement")
+
+    enhanced = _dcp_module.enhance_low_light_with_dcp_guided(img)
+    return enhanced
+
+
 def apply_sharpen_to_image(
     img: np.ndarray, 
     method: str = 'unsharp', 
@@ -327,6 +396,32 @@ def apply_sharpen_to_image(
     return sharpened
 
 
+def apply_denoise(
+    img: np.ndarray,
+    strength: float = 3.0,
+) -> np.ndarray:
+    """
+    Renk gürültülerini (mavi/kırmızı lekeler) temizler.
+
+    strength: Temizleme gücü. 3.0 hafif, 10.0 oldukça güçlüdür.
+    """
+    # fastNlMeansDenoisingColored özellikle renkli lekeler için tasarlanmıştır.
+    # h: Luma (parlaklık) temizleme gücü
+    # hColor: Chroma (renk) temizleme gücü
+    h = float(strength)
+    h_color = float(strength + 7.0)
+
+    denoised = cv2.fastNlMeansDenoisingColored(
+        img,
+        None,
+        h=h,
+        hColor=h_color,
+        templateWindowSize=7,
+        searchWindowSize=21,
+    )
+    return denoised
+
+
 class EnhancementService:
     """Image enhancement service for business logic"""
     
@@ -355,7 +450,13 @@ class EnhancementService:
         gray_slice_high: int = 180,
         use_bitplane: bool = False,
         bitplane_bit: int = 7,
-        # Low-light seçenekleri
+        # Denoise
+        use_denoise: bool = False,
+        denoise_strength: float = 3.0,
+        # DCP tabanlı low-light modları (pipeline içinden çağrılabilir)
+        use_dcp: bool = False,
+        use_dcp_guided: bool = False,
+        # Low-light seçenekleri (LIME/DUAL)
         use_lowlight_lime: bool = False,
         use_lowlight_dual: bool = False,
         lowlight_gamma: float = 0.6,
@@ -446,6 +547,12 @@ class EnhancementService:
             if use_bitplane:
                 if not (0 <= bitplane_bit <= 7):
                     raise ValueError(f"Bitplane bit must be between 0 and 7, got {bitplane_bit}")
+            if use_denoise:
+                if denoise_strength <= 0:
+                    raise ValueError(f"Denoise strength must be positive, got {denoise_strength}")
+                if denoise_strength > 20:
+                    raise ValueError(f"Denoise strength is too high (max 20), got {denoise_strength}")
+            # DCP modları için şu an ekstra numerik doğrulama yok; sadece bool bayraklar
             
             # Determine methods to apply
             methods_to_apply = []
@@ -476,6 +583,13 @@ class EnhancementService:
                 ))
             if use_bitplane:
                 methods_to_apply.append(('bitplane', {'bit': bitplane_bit}))
+            if use_denoise:
+                methods_to_apply.append(('denoise', {'strength': denoise_strength}))
+            # DCP tabanlı modlar
+            if use_dcp:
+                methods_to_apply.append(('dcp', {}))
+            if use_dcp_guided:
+                methods_to_apply.append(('dcp_guided', {}))
             # Low-light modlarını da birer yöntem olarak ekle
             if use_lowlight_lime:
                 methods_to_apply.append((
@@ -572,6 +686,11 @@ class EnhancementService:
                     bit = params['bit']
                     plane = ((gray >> bit) & 1) * 255
                     processed_img = cv2.cvtColor(plane.astype(np.uint8), cv2.COLOR_GRAY2BGR)
+                elif method_name == 'denoise':
+                    processed_img = apply_denoise(
+                        processed_img,
+                        strength=params.get('strength', 3.0),
+                    )
                 elif method_name == 'lowlight_lime':
                     processed_img = apply_lowlight_lime(
                         processed_img,
@@ -592,6 +711,10 @@ class EnhancementService:
                         bs=params['bs'],
                         be=params['be'],
                     )
+                elif method_name == 'dcp':
+                    processed_img = apply_dcp_lowlight(processed_img)
+                elif method_name == 'dcp_guided':
+                    processed_img = apply_dcp_lowlight_guided(processed_img)
             
             # Encode to JPEG bytes
             _, encoded_img = cv2.imencode('.jpg', processed_img)
@@ -600,4 +723,61 @@ class EnhancementService:
         except Exception as e:
             logger.error(f"Image enhancement failed: {e}")
             raise ValueError(f"Image enhancement failed: {str(e)}")
+
+
+    def enhance_image_with_dcp(self, image_bytes: bytes) -> bytes:
+        """
+        Dark Channel Prior (DCP) tabanlı low-light enhancement uygular.
+
+        Args:
+            image_bytes: Görüntü dosyası byte'ları
+
+        Returns:
+            İyileştirilmiş görüntü (JPEG bytes)
+        """
+        try:
+            # Convert bytes to numpy array
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            if img is None:
+                raise ValueError("Invalid image format")
+
+            # DCP tabanlı low-light enhancement uygula
+            processed_img = apply_dcp_lowlight(img)
+
+            # Encode to JPEG bytes
+            _, encoded_img = cv2.imencode('.jpg', processed_img)
+            return encoded_img.tobytes()
+
+        except Exception as e:
+            logger.error(f"DCP image enhancement failed: {e}")
+            raise ValueError(f"DCP image enhancement failed: {str(e)}")
+
+
+    def enhance_image_with_dcp_guided(self, image_bytes: bytes) -> bytes:
+        """
+        Dark Channel Prior (DCP) + Guided Filter tabanlı gelişmiş low-light enhancement uygular.
+
+        Args:
+            image_bytes: Görüntü dosyası byte'ları
+
+        Returns:
+            İyileştirilmiş görüntü (JPEG bytes)
+        """
+        try:
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+            if img is None:
+                raise ValueError("Invalid image format")
+
+            processed_img = apply_dcp_lowlight_guided(img)
+
+            _, encoded_img = cv2.imencode('.jpg', processed_img)
+            return encoded_img.tobytes()
+
+        except Exception as e:
+            logger.error(f"DCP Guided image enhancement failed: {e}")
+            raise ValueError(f"DCP Guided image enhancement failed: {str(e)}")
 

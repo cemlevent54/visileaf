@@ -153,3 +153,172 @@ async def enhance_image_json(
         logger.exception(f"Unexpected error during enhancement: {error_msg}")
         raise HTTPException(status_code=500, detail=error_msg)
 
+
+@router.post("/enhance-with-dcp")
+async def enhance_image_with_dcp(
+    request: Request,
+    image: UploadFile = File(..., description="Image file to enhance with Dark Channel Prior (DCP)"),
+    params_json: str | None = Form(
+        None,
+        description="Optional enhancement parameters as JSON string (currently not used by DCP algorithm, reserved for future use)",
+    ),
+):
+    """
+    Enhance image using Dark Channel Prior (DCP) based low-light enhancement.
+
+    - **image**: Image file (JPEG, PNG, etc.)
+    - **params_json** (optional): Enhancement parameters as JSON string.
+    
+    Not: `params_json` şu an algoritma içinde kullanılmıyor, ileride DCP parametrelerini
+    (ör. patch_size, omega, t_min vb.) kontrol etmek için ayrılmıştır.
+    """
+    logger.info(
+        f"DCP Enhancement request received - Image: {image.filename}, Size: {image.size if hasattr(image, 'size') else 'unknown'}"
+    )
+    if params_json is not None:
+        logger.debug(f"DCP params_json (optional): {params_json}")
+
+    try:
+        # Read image bytes
+        image_bytes = await image.read()
+        logger.debug(f"DCP Image bytes read: {len(image_bytes)} bytes")
+
+        # Parse JSON parameters if provided (optional, same validation as /enhance)
+        params = None
+        if params_json is not None:
+            try:
+                params_dict = json.loads(params_json)
+                logger.debug(f"DCP parsed params_dict: {params_dict}")
+                params = EnhancementParams(**params_dict)
+                # DCP endpoint için bayrakları zorunlu kıl
+                params.use_dcp = True
+                params.use_dcp_guided = False
+                logger.info(
+                    "DCP params validated "
+                    f"use_gamma={params.use_gamma}, use_clahe={params.use_clahe}, "
+                    f"use_msr={params.use_msr}, use_ssr={params.use_ssr}, "
+                    f"use_lowlight_lime={params.use_lowlight_lime}, use_lowlight_dual={params.use_lowlight_dual}, "
+                    f"use_dcp={params.use_dcp}"
+                )
+            except json.JSONDecodeError as e:
+                error_msg = f"Invalid JSON format for params_json: {str(e)}"
+                logger.error(f"DCP JSON decode error: {error_msg}, params_json: {params_json}")
+                raise HTTPException(status_code=400, detail=error_msg)
+            except ValidationError as e:
+                error_msg = f"Invalid parameters for DCP: {str(e)}"
+                logger.error(f"DCP validation error: {error_msg}, errors: {e.errors()}")
+                raise HTTPException(status_code=400, detail=error_msg)
+
+        # Create service and controller
+        enhancement_service = EnhancementService()
+        controller = EnhancementController(enhancement_service, request)
+
+        # Process image
+        if params is not None:
+            # /enhance ile aynı pipeline, DCP method'u dahil
+            logger.info("Starting DCP-based image enhancement via main pipeline...")
+            response = controller.enhance_image(image_bytes, params)
+            logger.info("DCP-based image enhancement via pipeline completed successfully")
+            return response
+        else:
+            # Eski davranış: sadece DCP uygula
+            logger.info("Starting DCP-based image enhancement (standalone)...")
+            response = controller.enhance_image_with_dcp(image_bytes)
+            logger.info("DCP-based image enhancement (standalone) completed successfully")
+            return response
+
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except ValueError as e:
+        error_msg = str(e)
+        logger.error(f"DCP Value error: {error_msg}")
+        raise HTTPException(status_code=400, detail=error_msg)
+    except Exception as e:
+        error_msg = f"DCP image enhancement failed: {str(e)}"
+        logger.exception(f"Unexpected error during DCP enhancement: {error_msg}")
+        raise HTTPException(status_code=500, detail=error_msg)
+
+
+@router.post("/dcp-guided-filter")
+async def enhance_image_with_dcp_guided(
+    request: Request,
+    image: UploadFile = File(..., description="Image file to enhance with Dark Channel Prior (DCP) + Guided Filter"),
+    params_json: str | None = Form(
+        None,
+        description="Optional enhancement parameters as JSON string (currently not used by DCP+Guided algorithm, reserved for future use)",
+    ),
+):
+    """
+    Enhance image using Dark Channel Prior (DCP) + Guided Filter based advanced low-light enhancement.
+
+    - **image**: Image file (JPEG, PNG, etc.)
+    - **params_json** (optional): Enhancement parameters as JSON string.
+    
+    Not: `params_json` şu an algoritma içinde kullanılmıyor, ileride patch_size, radius,
+    eps vb. guided filter / DCP parametrelerini kontrol etmek için ayrılmıştır.
+    """
+    logger.info(
+        f"DCP Guided Enhancement request received - Image: {image.filename}, Size: {image.size if hasattr(image, 'size') else 'unknown'}"
+    )
+    if params_json is not None:
+        logger.debug(f"DCP Guided params_json (optional): {params_json}")
+
+    try:
+        # Read image bytes
+        image_bytes = await image.read()
+        logger.debug(f"DCP Guided Image bytes read: {len(image_bytes)} bytes")
+
+        # Parse JSON parameters if provided (optional, same validation as /enhance)
+        params = None
+        if params_json is not None:
+            try:
+                params_dict = json.loads(params_json)
+                logger.debug(f"DCP Guided parsed params_dict: {params_dict}")
+                params = EnhancementParams(**params_dict)
+                # DCP Guided endpoint için bayrakları zorunlu kıl
+                params.use_dcp = False
+                params.use_dcp_guided = True
+                logger.info(
+                    "DCP Guided params validated "
+                    f"use_gamma={params.use_gamma}, use_clahe={params.use_clahe}, "
+                    f"use_msr={params.use_msr}, use_ssr={params.use_ssr}, "
+                    f"use_lowlight_lime={params.use_lowlight_lime}, use_lowlight_dual={params.use_lowlight_dual}, "
+                    f"use_dcp_guided={params.use_dcp_guided}"
+                )
+            except json.JSONDecodeError as e:
+                error_msg = f"Invalid JSON format for params_json: {str(e)}"
+                logger.error(f"DCP Guided JSON decode error: {error_msg}, params_json: {params_json}")
+                raise HTTPException(status_code=400, detail=error_msg)
+            except ValidationError as e:
+                error_msg = f"Invalid parameters for DCP Guided: {str(e)}"
+                logger.error(f"DCP Guided validation error: {error_msg}, errors: {e.errors()}")
+                raise HTTPException(status_code=400, detail=error_msg)
+
+        # Create service and controller
+        enhancement_service = EnhancementService()
+        controller = EnhancementController(enhancement_service, request)
+
+        # Process image
+        if params is not None:
+            logger.info("Starting DCP + Guided Filter enhancement via main pipeline...")
+            response = controller.enhance_image(image_bytes, params)
+            logger.info("DCP + Guided Filter enhancement via pipeline completed successfully")
+            return response
+        else:
+            logger.info("Starting DCP + Guided Filter enhancement (standalone)...")
+            response = controller.enhance_image_with_dcp_guided(image_bytes)
+            logger.info("DCP + Guided Filter enhancement (standalone) completed successfully")
+            return response
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        error_msg = str(e)
+        logger.error(f"DCP Guided Value error: {error_msg}")
+        raise HTTPException(status_code=400, detail=error_msg)
+    except Exception as e:
+        error_msg = f"DCP Guided image enhancement failed: {str(e)}"
+        logger.exception(f"Unexpected error during DCP Guided enhancement: {error_msg}")
+        raise HTTPException(status_code=500, detail=error_msg)
+

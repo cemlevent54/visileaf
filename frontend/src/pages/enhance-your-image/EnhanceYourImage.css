@@ -344,6 +344,11 @@
     padding-top: 2rem;
 }
 
+.enhance-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
 .enhance-button {
     padding: 1rem 2.5rem;
     font-size: 1.1rem;
@@ -459,6 +464,11 @@
 
     .action-section {
         padding-top: 0;
+    }
+
+    .enhance-buttons {
+        flex-direction: column;
+        width: 100%;
     }
 
     .enhance-button {

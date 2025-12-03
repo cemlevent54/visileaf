@@ -68,6 +68,11 @@ class EnhancementController:
                 gray_slice_high=params.gray_slice_high,
                 use_bitplane=params.use_bitplane,
                 bitplane_bit=params.bitplane_bit,
+                use_denoise=getattr(params, "use_denoise", False),
+                denoise_strength=getattr(params, "denoise_strength", 3.0),
+                # DCP tabanlı modlar (pipeline içinden çağrılabilir)
+                use_dcp=getattr(params, "use_dcp", False),
+                use_dcp_guided=getattr(params, "use_dcp_guided", False),
                 # Low-light özel modları
                 use_lowlight_lime=params.use_lowlight_lime,
                 use_lowlight_dual=params.use_lowlight_dual,
@@ -95,6 +100,82 @@ class EnhancementController:
         except Exception as e:
             error_msg = str(e)
             logger.error(f"Image enhancement failed: {error_msg}")
+            raise HTTPException(
+                status_code=500,
+                detail=gettext("enhancement_controller.enhancement_failed", self.request) if self.request else "Image enhancement failed"
+            )
+
+    def enhance_image_with_dcp(
+        self,
+        image_bytes: bytes,
+    ) -> Response:
+        """
+        Handle Dark Channel Prior (DCP) based image enhancement request.
+
+        Args:
+            image_bytes: Image file bytes
+
+        Returns:
+            Response with enhanced image as downloadable JPEG
+        """
+        try:
+            enhanced_image_bytes = self.enhancement_service.enhance_image_with_dcp(
+                image_bytes=image_bytes
+            )
+
+            return Response(
+                content=enhanced_image_bytes,
+                media_type="image/jpeg",
+                headers={
+                    "Content-Disposition": "attachment; filename=enhanced_image_dcp.jpg"
+                }
+            )
+
+        except ValueError as e:
+            error_msg = str(e)
+            logger.error(f"DCP image enhancement validation error: {error_msg}")
+            raise HTTPException(status_code=400, detail=error_msg)
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"DCP image enhancement failed: {error_msg}")
+            raise HTTPException(
+                status_code=500,
+                detail=gettext("enhancement_controller.enhancement_failed", self.request) if self.request else "Image enhancement failed"
+            )
+
+    def enhance_image_with_dcp_guided(
+        self,
+        image_bytes: bytes,
+    ) -> Response:
+        """
+        Handle Dark Channel Prior + Guided Filter based image enhancement request.
+
+        Args:
+            image_bytes: Image file bytes
+
+        Returns:
+            Response with enhanced image as downloadable JPEG
+        """
+        try:
+            enhanced_image_bytes = self.enhancement_service.enhance_image_with_dcp_guided(
+                image_bytes=image_bytes
+            )
+
+            return Response(
+                content=enhanced_image_bytes,
+                media_type="image/jpeg",
+                headers={
+                    "Content-Disposition": "attachment; filename=enhanced_image_dcp_guided.jpg"
+                }
+            )
+
+        except ValueError as e:
+            error_msg = str(e)
+            logger.error(f"DCP Guided image enhancement validation error: {error_msg}")
+            raise HTTPException(status_code=400, detail=error_msg)
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"DCP Guided image enhancement failed: {error_msg}")
             raise HTTPException(
                 status_code=500,
                 detail=gettext("enhancement_controller.enhancement_failed", self.request) if self.request else "Image enhancement failed"

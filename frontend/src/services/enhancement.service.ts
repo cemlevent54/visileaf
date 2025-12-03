@@ -32,6 +32,8 @@ interface EnhancementParams {
     gray_slice_high?: number
     use_bitplane?: boolean
     bitplane_bit?: number
+    use_denoise?: boolean
+    denoise_strength?: number
     order?: string[]
 }
 
@@ -76,6 +78,80 @@ class EnhancementService {
             }
 
             // Return the enhanced image as Blob
+            return await response.blob()
+        } catch (error) {
+            throw error
+        }
+    }
+
+    /**
+     * Enhance an image using Dark Channel Prior (DCP) based low-light enhancement.
+     * Optionally accepts the same params JSON as /enhance to control pipeline/order.
+     */
+    async enhanceImageWithDcp(
+        imageFile: File,
+        params?: EnhancementParams
+    ): Promise<Blob> {
+        try {
+            const url = `${this.baseUrl}/api/enhancement/enhance-with-dcp`
+
+            const formData = new FormData()
+            formData.append('image', imageFile)
+            if (params) {
+                formData.append('params_json', JSON.stringify(params))
+            }
+
+            const headers = getAuthHeadersForFormData()
+
+            const response = await apiRequest(url, {
+                method: 'POST',
+                headers,
+                body: formData,
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                const errorMessage = errorData.detail || errorData.message || 'Image enhancement with DCP failed'
+                throw new Error(errorMessage)
+            }
+
+            return await response.blob()
+        } catch (error) {
+            throw error
+        }
+    }
+
+    /**
+     * Enhance an image using Dark Channel Prior (DCP) + Guided Filter based advanced low-light enhancement.
+     * Optionally accepts the same params JSON as /enhance to control pipeline/order.
+     */
+    async enhanceImageWithDcpGuided(
+        imageFile: File,
+        params?: EnhancementParams
+    ): Promise<Blob> {
+        try {
+            const url = `${this.baseUrl}/api/enhancement/dcp-guided-filter`
+
+            const formData = new FormData()
+            formData.append('image', imageFile)
+            if (params) {
+                formData.append('params_json', JSON.stringify(params))
+            }
+
+            const headers = getAuthHeadersForFormData()
+
+            const response = await apiRequest(url, {
+                method: 'POST',
+                headers,
+                body: formData,
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}))
+                const errorMessage = errorData.detail || errorData.message || 'Image enhancement with DCP Guided Filter failed'
+                throw new Error(errorMessage)
+            }
+
             return await response.blob()
         } catch (error) {
             throw error

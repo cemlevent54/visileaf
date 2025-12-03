@@ -396,6 +396,86 @@
           }
         }
       }
+    },
+    "/api/enhancement/enhance-with-dcp": {
+      "post": {
+        "tags": [
+          "enhancement"
+        ],
+        "summary": "Enhance Image With Dcp",
+        "description": "Enhance image using Dark Channel Prior (DCP) based low-light enhancement.\n\n- **image**: Image file (JPEG, PNG, etc.)\n- **params_json** (optional): Enhancement parameters as JSON string.\n\nNot: `params_json` şu an algoritma içinde kullanılmıyor, ileride DCP parametrelerini\n(ör. patch_size, omega, t_min vb.) kontrol etmek için ayrılmıştır.",
+        "operationId": "enhance_image_with_dcp_api_enhancement_enhance_with_dcp_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_enhance_image_with_dcp_api_enhancement_enhance_with_dcp_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/enhancement/dcp-guided-filter": {
+      "post": {
+        "tags": [
+          "enhancement"
+        ],
+        "summary": "Enhance Image With Dcp Guided",
+        "description": "Enhance image using Dark Channel Prior (DCP) + Guided Filter based advanced low-light enhancement.\n\n- **image**: Image file (JPEG, PNG, etc.)\n- **params_json** (optional): Enhancement parameters as JSON string.\n\nNot: `params_json` şu an algoritma içinde kullanılmıyor, ileride patch_size, radius,\neps vb. guided filter / DCP parametrelerini kontrol etmek için ayrılmıştır.",
+        "operationId": "enhance_image_with_dcp_guided_api_enhancement_dcp_guided_filter_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_enhance_image_with_dcp_guided_api_enhancement_dcp_guided_filter_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -440,6 +520,60 @@
           "params"
         ],
         "title": "Body_enhance_image_json_api_enhancement_enhance_json_post"
+      },
+      "Body_enhance_image_with_dcp_api_enhancement_enhance_with_dcp_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "format": "binary",
+            "title": "Image",
+            "description": "Image file to enhance with Dark Channel Prior (DCP)"
+          },
+          "params_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Params Json",
+            "description": "Optional enhancement parameters as JSON string (currently not used by DCP algorithm, reserved for future use)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_enhance_image_with_dcp_api_enhancement_enhance_with_dcp_post"
+      },
+      "Body_enhance_image_with_dcp_guided_api_enhancement_dcp_guided_filter_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "format": "binary",
+            "title": "Image",
+            "description": "Image file to enhance with Dark Channel Prior (DCP) + Guided Filter"
+          },
+          "params_json": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Params Json",
+            "description": "Optional enhancement parameters as JSON string (currently not used by DCP+Guided algorithm, reserved for future use)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image"
+        ],
+        "title": "Body_enhance_image_with_dcp_guided_api_enhancement_dcp_guided_filter_post"
       },
       "EnhancementParams": {
         "properties": {
@@ -589,6 +723,30 @@
             "description": "Bit index for bit-plane slicing (0-7)",
             "default": 7
           },
+          "use_denoise": {
+            "type": "boolean",
+            "title": "Use Denoise",
+            "description": "Apply denoising to remove color noise (e.g., blue/red speckles)",
+            "default": false
+          },
+          "denoise_strength": {
+            "type": "number",
+            "title": "Denoise Strength",
+            "description": "Denoising strength (3.0 = light, 10.0 = strong)",
+            "default": 3.0
+          },
+          "use_dcp": {
+            "type": "boolean",
+            "title": "Use Dcp",
+            "description": "Enable Dark Channel Prior (DCP) based low-light enhancement as a method in the pipeline",
+            "default": false
+          },
+          "use_dcp_guided": {
+            "type": "boolean",
+            "title": "Use Dcp Guided",
+            "description": "Enable Dark Channel Prior (DCP) + Guided Filter based low-light enhancement as a method in the pipeline",
+            "default": false
+          },
           "order": {
             "anyOf": [
               {
@@ -663,6 +821,7 @@
             8,
             8
           ],
+          "denoise_strength": 3.0,
           "gamma": 0.5,
           "gray_slice_high": 180,
           "gray_slice_low": 100,
@@ -688,6 +847,9 @@
           "threshold_value": 128,
           "use_bitplane": false,
           "use_clahe": true,
+          "use_dcp": false,
+          "use_dcp_guided": false,
+          "use_denoise": false,
           "use_gamma": true,
           "use_gray_slice": false,
           "use_lowlight_dual": false,

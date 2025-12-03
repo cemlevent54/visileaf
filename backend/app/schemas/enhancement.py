@@ -70,6 +70,26 @@ class EnhancementParams(BaseModel):
         default=7,
         description="Bit index for bit-plane slicing (0-7)"
     )
+
+    # Denoise (gürültü temizleme)
+    use_denoise: bool = Field(
+        default=False,
+        description="Apply denoising to remove color noise (e.g., blue/red speckles)"
+    )
+    denoise_strength: float = Field(
+        default=3.0,
+        description="Denoising strength (3.0 = light, 10.0 = strong)"
+    )
+
+    # DCP tabanlı low-light modları
+    use_dcp: bool = Field(
+        default=False,
+        description="Enable Dark Channel Prior (DCP) based low-light enhancement as a method in the pipeline"
+    )
+    use_dcp_guided: bool = Field(
+        default=False,
+        description="Enable Dark Channel Prior (DCP) + Guided Filter based low-light enhancement as a method in the pipeline"
+    )
     
     order: Optional[List[str]] = Field(
         default=None, 
@@ -135,6 +155,10 @@ class EnhancementParams(BaseModel):
                 "gray_slice_high": 180,
                 "use_bitplane": False,
                 "bitplane_bit": 7,
+                "use_denoise": False,
+                "denoise_strength": 3.0,
+                "use_dcp": False,
+                "use_dcp_guided": False,
                 "order": ["gamma", "msr", "clahe"],
                 "use_lowlight_lime": True,
                 "use_lowlight_dual": False,
