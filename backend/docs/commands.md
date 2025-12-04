@@ -4,6 +4,7 @@ python -m venv .venv
 
 # Projeyi başlatma (npm start benzeri)
 python -m app start
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
 # Development modunda başlatma
 python -m app dev

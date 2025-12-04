@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import os
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from uuid import UUID
 
 import cv2
@@ -171,5 +171,53 @@ class ImageService:
             "input": input_image,
             "output": output_image,
         }
+
+    def list_results_for_user(
+        self,
+        user_id: UUID,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """
+        List recent enhancement results for a user.
+
+        Returns output images (children) with their input (parent) and params.
+        """
+        from app.models.image import Image as ImageModel  # avoid circular import hints
+        from sqlmodel import select
+
+        statement = (
+            select(ImageModel)
+            .where(
+                ImageModel.user_id == user_id,
+                ImageModel.parent_image_id.is_not(None),
+            )
+            .order_by(ImageModel.created_at.desc())
+            .limit(limit)
+        )
+        results = self.session.exec(statement).all()
+
+        items: List[Dict[str, Any]] = []
+        for out_img in results:
+            parent = out_img.parent_image
+            items.append(
+                {
+                    "id": str(out_img.id),
+                    "enhancement_type": out_img.enhancement_type,
+                    "created_at": out_img.created_at.isoformat(),
+                    "output_path": out_img.file_path,
+                    "output_width": out_img.width,
+                    "output_height": out_img.height,
+                    "params": out_img.params or {},
+                    "input": {
+                        "id": str(parent.id) if parent else None,
+                        "path": parent.file_path if parent else None,
+                        "width": parent.width if parent else None,
+                        "height": parent.height if parent else None,
+                        "created_at": parent.created_at.isoformat() if parent else None,
+                    },
+                }
+            )
+
+        return items
 
 

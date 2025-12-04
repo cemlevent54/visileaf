@@ -509,6 +509,57 @@
           }
         }
       }
+    },
+    "/api/enhancement/results": {
+      "get": {
+        "tags": [
+          "enhancement"
+        ],
+        "summary": "List Enhancement Results",
+        "description": "List recent enhancement results for the current user.\n\nReturns:\n    List of records containing input/output image info and params.",
+        "operationId": "list_enhancement_results_api_enhancement_results_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

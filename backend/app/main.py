@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from app.config import (
     setUpLogging,
     get_logger,
@@ -94,6 +96,17 @@ def read_root(request: Request):
 from app.routes import auth, enhancement
 app.include_router(auth.router)
 app.include_router(enhancement.router)
+
+# Statik uploads klasörünü servis et
+# Proje yapısı:
+#   visileaf/
+#     backend/
+#       app/
+#         main.py  (bu dosya)
+#       uploads/
+BASE_DIR = Path(__file__).resolve().parent.parent
+UPLOADS_DIR = BASE_DIR / "uploads"
+app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 
 # Uvicorn'u programatik olarak çalıştırmak için

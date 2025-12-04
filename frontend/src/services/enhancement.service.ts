@@ -41,10 +41,8 @@ class EnhancementService {
     private baseUrl: string
 
     constructor() {
+        // API base URL doğrudan VITE_API_URL üzerinden gelir (ör. http://localhost:8000)
         this.baseUrl = getApiUrl()
-        if (!this.baseUrl.startsWith('http://') && !this.baseUrl.startsWith('https://')) {
-            this.baseUrl = `http://${this.baseUrl}`
-        }
     }
 
     /**
@@ -156,6 +154,27 @@ class EnhancementService {
         } catch (error) {
             throw error
         }
+    }
+
+    /**
+     * List recent enhancement results for the current user.
+     */
+    async listResults(): Promise<any[]> {
+        const url = `${this.baseUrl}/api/enhancement/results`
+        const headers = getAuthHeadersForFormData()
+
+        const response = await apiRequest(url, {
+            method: 'GET',
+            headers,
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            const errorMessage = errorData.detail || errorData.message || 'Failed to load enhancement results'
+            throw new Error(errorMessage)
+        }
+
+        return await response.json()
     }
 }
 

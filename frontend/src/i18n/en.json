@@ -200,5 +200,35 @@
         "graySliceHigh": "Slice upper bound",
         "useBitplane": "Use bit-plane slicing",
         "bitplaneBit": "Bit-plane bit (0-7)"
+    },
+    "results": {
+        "title": "View Processing Results",
+        "loading": "Loading results...",
+        "empty": "No image processing results yet.",
+        "table": {
+            "id": "ID",
+            "type": "Type",
+            "createdAt": "Created At",
+            "input": "Input",
+            "output": "Output",
+            "actions": "Actions"
+        },
+        "actions": {
+            "showImages": "Show input/output images",
+            "showParams": "Show parameters",
+            "showAll": "Show everything",
+            "export": "Export (Detail - coming soon)",
+            "viewInputImage": "View input image",
+            "viewOutputImage": "View output image"
+        },
+        "modal": {
+            "imagesTitle": "Input / Output Images",
+            "paramsTitle": "Parameters",
+            "allTitle": "Details",
+            "input": "Input",
+            "output": "Output",
+            "params": "Parameters"
+        },
+        "noParams": "No parameters"
     }
 }

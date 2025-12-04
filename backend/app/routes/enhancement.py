@@ -394,3 +394,33 @@ async def enhance_image_with_dcp_guided(
         logger.exception(f"Unexpected error during DCP Guided enhancement: {error_msg}")
         raise HTTPException(status_code=500, detail=error_msg)
 
+
+@router.get("/results")
+async def list_enhancement_results(
+    authorization: str = Header(..., alias="Authorization"),
+    session: Session = Depends(get_session),
+    limit: int = 100,
+):
+    """
+    List recent enhancement results for the current user.
+
+    Returns:
+        List of records containing input/output image info and params.
+    """
+    try:
+        auth_service = AuthService(session)
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Authorization header with Bearer token is required")
+        access_token = authorization.replace("Bearer ", "")
+        current_user = auth_service.get_current_user(access_token)
+        user_id = current_user["user"]["id"]
+
+        image_service = ImageService(session)
+        results = image_service.list_results_for_user(user_id=user_id, limit=limit)
+        return results
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Failed to list enhancement results: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list enhancement results")
+

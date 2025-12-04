@@ -59,13 +59,8 @@ class AuthService {
     private baseUrl: string
 
     constructor() {
-        // API interceptor'dan base URL'i al
+        // API base URL doğrudan VITE_API_URL üzerinden gelir (ör. http://localhost:8000)
         this.baseUrl = getApiUrl()
-
-        // Validate URL format
-        if (!this.baseUrl.startsWith('http://') && !this.baseUrl.startsWith('https://')) {
-            this.baseUrl = `http://${this.baseUrl}`
-        }
     }
 
     /**

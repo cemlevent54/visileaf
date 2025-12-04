@@ -200,5 +200,35 @@
         "graySliceHigh": "Dilim üst sınırı",
         "useBitplane": "Bit-plane dilimleme kullan",
         "bitplaneBit": "Bit-plane biti (0-7)"
+    },
+    "results": {
+        "title": "İşlem Sonuçlarını Görüntüle",
+        "loading": "Sonuçlar yükleniyor...",
+        "empty": "Henüz herhangi bir görüntü işleme sonucu yok.",
+        "table": {
+            "id": "ID",
+            "type": "Tür",
+            "createdAt": "Oluşturulma",
+            "input": "Giriş",
+            "output": "Çıkış",
+            "actions": "Aksiyonlar"
+        },
+        "actions": {
+            "showImages": "Giriş/Çıkış Görüntüleri",
+            "showParams": "Parametreleri Göster",
+            "showAll": "Hepsini Göster",
+            "export": "Dışa Aktar (Mock)",
+            "viewInputImage": "Giriş resmini görüntüle",
+            "viewOutputImage": "Çıkış resmini görüntüle"
+        },
+        "modal": {
+            "imagesTitle": "Giriş / Çıkış Görüntüleri",
+            "paramsTitle": "Parametreler",
+            "allTitle": "Detaylar",
+            "input": "Giriş",
+            "output": "Çıkış",
+            "params": "Parametreler"
+        },
+        "noParams": "Parametre bulunamadı"
     }
 }
