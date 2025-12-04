@@ -505,9 +505,9 @@ function EnhanceYourImage() {
               {/* Action Button */}
               <div className="action-section">
                 <div className="enhance-buttons">
-                  <button
-                    className="enhance-button"
-                    onClick={handleEnhance}
+                <button
+                  className="enhance-button"
+                  onClick={handleEnhance}
                     disabled={
                       !inputImage ||
                       loading ||
@@ -516,9 +516,9 @@ function EnhanceYourImage() {
                       params.use_dcp ||
                       params.use_dcp_guided
                     }
-                  >
-                    {loading ? t('enhance.processing') : t('enhance.enhanceButton')}
-                  </button>
+                >
+                  {loading ? t('enhance.processing') : t('enhance.enhanceButton')}
+                </button>
                   <button
                     className="enhance-button secondary"
                     onClick={handleEnhanceWithDcp}

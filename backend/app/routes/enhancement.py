@@ -3,12 +3,15 @@ Enhancement routes - Image enhancement endpoints
 """
 import json
 import logging
-from fastapi import APIRouter, File, Form, UploadFile, Request, Body, HTTPException
+from fastapi import APIRouter, File, Form, UploadFile, Request, Body, HTTPException, Header, Depends
 from app.controllers.enhancement_controller import EnhancementController
 from app.services.enhancement_service import EnhancementService
+from app.services.image_service import ImageService
+from app.services.auth_service import AuthService
 from app.schemas.enhancement import EnhancementParams
-from app.config import get_logger
+from app.config import get_logger, get_session
 from pydantic import ValidationError
+from sqlmodel import Session
 
 router = APIRouter(prefix="/api/enhancement", tags=["enhancement"])
 logger = get_logger(__name__)
@@ -18,7 +21,9 @@ logger = get_logger(__name__)
 async def enhance_image(
     request: Request,
     image: UploadFile = File(..., description="Image file to enhance"),
-    params_json: str = Form(..., description="Enhancement parameters as JSON string")
+    params_json: str = Form(..., description="Enhancement parameters as JSON string"),
+    authorization: str = Header(..., alias="Authorization"),
+    session: Session = Depends(get_session),
 ):
     """
     Enhance image with specified methods.
@@ -62,6 +67,16 @@ async def enhance_image(
     logger.debug(f"Request params_json: {params_json}")
     
     try:
+        # Auth & services
+        auth_service = AuthService(session)
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Authorization header with Bearer token is required")
+        access_token = authorization.replace("Bearer ", "")
+        current_user = auth_service.get_current_user(access_token)
+        user_id = current_user["user"]["id"]
+
+        image_service = ImageService(session)
+
         # Read image bytes
         image_bytes = await image.read()
         logger.debug(f"Image bytes read: {len(image_bytes)} bytes")
@@ -85,9 +100,16 @@ async def enhance_image(
         enhancement_service = EnhancementService()
         controller = EnhancementController(enhancement_service, request)
         
-        # Process image
+        # Process image + persist
         logger.info("Starting image enhancement...")
-        response = controller.enhance_image(image_bytes, params)
+        response = controller.enhance_image_with_persistence(
+            image_bytes=image_bytes,
+            params=params,
+            image_service=image_service,
+            user_id=user_id,
+            original_filename=image.filename,
+            enhancement_type="enhance",
+        )
         logger.info("Image enhancement completed successfully")
         return response
         
@@ -162,6 +184,8 @@ async def enhance_image_with_dcp(
         None,
         description="Optional enhancement parameters as JSON string (currently not used by DCP algorithm, reserved for future use)",
     ),
+    authorization: str = Header(..., alias="Authorization"),
+    session: Session = Depends(get_session),
 ):
     """
     Enhance image using Dark Channel Prior (DCP) based low-light enhancement.
@@ -179,6 +203,16 @@ async def enhance_image_with_dcp(
         logger.debug(f"DCP params_json (optional): {params_json}")
 
     try:
+        # Auth & services
+        auth_service = AuthService(session)
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Authorization header with Bearer token is required")
+        access_token = authorization.replace("Bearer ", "")
+        current_user = auth_service.get_current_user(access_token)
+        user_id = current_user["user"]["id"]
+
+        image_service = ImageService(session)
+
         # Read image bytes
         image_bytes = await image.read()
         logger.debug(f"DCP Image bytes read: {len(image_bytes)} bytes")
@@ -212,18 +246,31 @@ async def enhance_image_with_dcp(
         # Create service and controller
         enhancement_service = EnhancementService()
         controller = EnhancementController(enhancement_service, request)
-
-        # Process image
+        
+        # Process image + persist
         if params is not None:
             # /enhance ile aynı pipeline, DCP method'u dahil
             logger.info("Starting DCP-based image enhancement via main pipeline...")
-            response = controller.enhance_image(image_bytes, params)
+            response = controller.enhance_image_with_persistence(
+                image_bytes=image_bytes,
+                params=params,
+                image_service=image_service,
+                user_id=user_id,
+                original_filename=image.filename,
+                enhancement_type="dcp_pipeline",
+            )
             logger.info("DCP-based image enhancement via pipeline completed successfully")
             return response
         else:
-            # Eski davranış: sadece DCP uygula
+            # Eski davranış: sadece DCP uygula (ama artık DB'ye de kaydediyoruz)
             logger.info("Starting DCP-based image enhancement (standalone)...")
-            response = controller.enhance_image_with_dcp(image_bytes)
+            response = controller.enhance_image_with_dcp_persistence(
+                image_bytes=image_bytes,
+                image_service=image_service,
+                user_id=user_id,
+                original_filename=image.filename,
+                enhancement_type="dcp",
+            )
             logger.info("DCP-based image enhancement (standalone) completed successfully")
             return response
 
@@ -248,6 +295,8 @@ async def enhance_image_with_dcp_guided(
         None,
         description="Optional enhancement parameters as JSON string (currently not used by DCP+Guided algorithm, reserved for future use)",
     ),
+    authorization: str = Header(..., alias="Authorization"),
+    session: Session = Depends(get_session),
 ):
     """
     Enhance image using Dark Channel Prior (DCP) + Guided Filter based advanced low-light enhancement.
@@ -265,6 +314,16 @@ async def enhance_image_with_dcp_guided(
         logger.debug(f"DCP Guided params_json (optional): {params_json}")
 
     try:
+        # Auth & services
+        auth_service = AuthService(session)
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Authorization header with Bearer token is required")
+        access_token = authorization.replace("Bearer ", "")
+        current_user = auth_service.get_current_user(access_token)
+        user_id = current_user["user"]["id"]
+
+        image_service = ImageService(session)
+
         # Read image bytes
         image_bytes = await image.read()
         logger.debug(f"DCP Guided Image bytes read: {len(image_bytes)} bytes")
@@ -298,16 +357,29 @@ async def enhance_image_with_dcp_guided(
         # Create service and controller
         enhancement_service = EnhancementService()
         controller = EnhancementController(enhancement_service, request)
-
+        
         # Process image
         if params is not None:
             logger.info("Starting DCP + Guided Filter enhancement via main pipeline...")
-            response = controller.enhance_image(image_bytes, params)
+            response = controller.enhance_image_with_persistence(
+                image_bytes=image_bytes,
+                params=params,
+                image_service=image_service,
+                user_id=user_id,
+                original_filename=image.filename,
+                enhancement_type="dcp_guided_pipeline",
+            )
             logger.info("DCP + Guided Filter enhancement via pipeline completed successfully")
             return response
         else:
             logger.info("Starting DCP + Guided Filter enhancement (standalone)...")
-            response = controller.enhance_image_with_dcp_guided(image_bytes)
+            response = controller.enhance_image_with_dcp_guided_persistence(
+                image_bytes=image_bytes,
+                image_service=image_service,
+                user_id=user_id,
+                original_filename=image.filename,
+                enhancement_type="dcp_guided",
+            )
             logger.info("DCP + Guided Filter enhancement (standalone) completed successfully")
             return response
 

@@ -325,15 +325,26 @@
         "summary": "Enhance Image",
         "description": "Enhance image with specified methods.\n\n- **image**: Image file (JPEG, PNG, etc.)\n- **params_json**: Enhancement parameters as JSON string\n\nExample JSON:\n```json\n{\n    \"use_gamma\": true,\n    \"gamma\": 0.5,\n    \"use_msr\": true,\n    \"msr_sigmas\": [15, 80, 250],\n    \"use_clahe\": true,\n    \"clahe_clip\": 2.5,\n    \"clahe_tile_size\": [8, 8],\n    \"use_ssr\": false,\n    \"ssr_sigma\": 80,\n    \"use_sharpen\": false,\n    \"sharpen_method\": \"unsharp\",\n    \"sharpen_strength\": 1.0,\n    \"sharpen_kernel_size\": 5,\n    \"order\": [\"gamma\", \"msr\", \"clahe\"],\n    \"use_lowlight_lime\": true,\n    \"use_lowlight_dual\": false,\n    \"lowlight_gamma\": 0.6,\n    \"lowlight_lambda\": 0.15,\n    \"lowlight_sigma\": 3.0,\n    \"lowlight_bc\": 1.0,\n    \"lowlight_bs\": 1.0,\n    \"lowlight_be\": 1.0\n}\n```\n\nReturns:\n    Enhanced image as downloadable JPEG file",
         "operationId": "enhance_image_api_enhancement_enhance_post",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/Body_enhance_image_api_enhancement_enhance_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -405,15 +416,26 @@
         "summary": "Enhance Image With Dcp",
         "description": "Enhance image using Dark Channel Prior (DCP) based low-light enhancement.\n\n- **image**: Image file (JPEG, PNG, etc.)\n- **params_json** (optional): Enhancement parameters as JSON string.\n\nNot: `params_json` şu an algoritma içinde kullanılmıyor, ileride DCP parametrelerini\n(ör. patch_size, omega, t_min vb.) kontrol etmek için ayrılmıştır.",
         "operationId": "enhance_image_with_dcp_api_enhancement_enhance_with_dcp_post",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/Body_enhance_image_with_dcp_api_enhancement_enhance_with_dcp_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -445,15 +467,26 @@
         "summary": "Enhance Image With Dcp Guided",
         "description": "Enhance image using Dark Channel Prior (DCP) + Guided Filter based advanced low-light enhancement.\n\n- **image**: Image file (JPEG, PNG, etc.)\n- **params_json** (optional): Enhancement parameters as JSON string.\n\nNot: `params_json` şu an algoritma içinde kullanılmıyor, ileride patch_size, radius,\neps vb. guided filter / DCP parametrelerini kontrol etmek için ayrılmıştır.",
         "operationId": "enhance_image_with_dcp_guided_api_enhancement_dcp_guided_filter_post",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/Body_enhance_image_with_dcp_guided_api_enhancement_dcp_guided_filter_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
