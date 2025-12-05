@@ -560,6 +560,56 @@
           }
         }
       }
+    },
+    "/api/enhancement/results/{image_id}/toggle-star": {
+      "post": {
+        "tags": [
+          "enhancement"
+        ],
+        "summary": "Toggle Star Result",
+        "description": "Toggle star status for an enhancement result.\n\n- **image_id**: Output image UUID (the enhancement result to star/unstar)\n\nReturns:\n    dict with 'id' and 'is_starred' status",
+        "operationId": "toggle_star_result_api_enhancement_results__image_id__toggle_star_post",
+        "parameters": [
+          {
+            "name": "image_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Image Id"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -784,16 +834,16 @@
             "default": false
           },
           "gray_slice_low": {
-            "type": "integer",
+            "type": "number",
             "title": "Gray Slice Low",
-            "description": "Lower bound for gray-level slicing (0-255)",
-            "default": 100
+            "description": "Lower bound for gray-level slicing (0.0-255.0)",
+            "default": 100.0
           },
           "gray_slice_high": {
-            "type": "integer",
+            "type": "number",
             "title": "Gray Slice High",
-            "description": "Upper bound for gray-level slicing (0-255)",
-            "default": 180
+            "description": "Upper bound for gray-level slicing (0.0-255.0)",
+            "default": 180.0
           },
           "use_bitplane": {
             "type": "boolean",

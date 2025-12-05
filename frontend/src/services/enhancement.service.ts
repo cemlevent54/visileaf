@@ -176,6 +176,27 @@ class EnhancementService {
 
         return await response.json()
     }
+
+    /**
+     * Toggle star status for an enhancement result.
+     */
+    async toggleStar(imageId: string): Promise<{ id: string; is_starred: boolean }> {
+        const url = `${this.baseUrl}/api/enhancement/results/${imageId}/toggle-star`
+        const headers = getAuthHeadersForFormData()
+
+        const response = await apiRequest(url, {
+            method: 'POST',
+            headers,
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            const errorMessage = errorData.detail || errorData.message || 'Failed to toggle star'
+            throw new Error(errorMessage)
+        }
+
+        return await response.json()
+    }
 }
 
 // Export singleton instance

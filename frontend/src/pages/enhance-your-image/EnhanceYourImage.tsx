@@ -28,8 +28,8 @@ interface EnhancementParams {
   use_threshold: boolean
   threshold_value: number
   use_gray_slice: boolean
-  gray_slice_low: number
-  gray_slice_high: number
+  gray_slice_low: number // float
+  gray_slice_high: number // float
   use_bitplane: boolean
   bitplane_bit: number
   use_denoise: boolean
@@ -78,8 +78,8 @@ function EnhanceYourImage() {
     use_threshold: false,
     threshold_value: 128,
     use_gray_slice: false,
-    gray_slice_low: 100,
-    gray_slice_high: 180,
+    gray_slice_low: 100.0,
+    gray_slice_high: 180.0,
     use_bitplane: false,
     bitplane_bit: 7,
     use_denoise: false,
@@ -879,32 +879,38 @@ function EnhanceYourImage() {
                       <Input
                         label={t('enhance.graySliceLow') || 'Gray slice low'}
                         type="number"
+                        step={0.1}
                         value={params.gray_slice_low.toString()}
                         onChange={(e) => {
-                          let val = parseInt(e.target.value) || 0
-                          if (val < 0) val = 0
-                          if (val > 255) val = 255
+                          const inputVal = e.target.value
+                          let val = parseFloat(inputVal)
+                          if (isNaN(val)) val = 0.0
+                          if (val < 0.0) val = 0.0
+                          if (val > 255.0) val = 255.0
                           setParams((prev) => ({
                             ...prev,
                             gray_slice_low: val
                           }))
                         }}
-                        placeholder="100"
+                        placeholder="100.0"
                       />
                       <Input
                         label={t('enhance.graySliceHigh') || 'Gray slice high'}
                         type="number"
+                        step={0.1}
                         value={params.gray_slice_high.toString()}
                         onChange={(e) => {
-                          let val = parseInt(e.target.value) || 0
-                          if (val < 0) val = 0
-                          if (val > 255) val = 255
+                          const inputVal = e.target.value
+                          let val = parseFloat(inputVal)
+                          if (isNaN(val)) val = 0.0
+                          if (val < 0.0) val = 0.0
+                          if (val > 255.0) val = 255.0
                           setParams((prev) => ({
                             ...prev,
                             gray_slice_high: val
                           }))
                         }}
-                        placeholder="180"
+                        placeholder="180.0"
                       />
                     </div>
                   )}

@@ -446,8 +446,8 @@ class EnhancementService:
         use_threshold: bool = False,
         threshold_value: int = 128,
         use_gray_slice: bool = False,
-        gray_slice_low: int = 100,
-        gray_slice_high: int = 180,
+        gray_slice_low: float = 100.0,
+        gray_slice_high: float = 180.0,
         use_bitplane: bool = False,
         bitplane_bit: int = 7,
         # Denoise
@@ -675,8 +675,11 @@ class EnhancementService:
                 elif method_name == 'gray_slice':
                     # Gri seviye dilimleme: belirli aralığı beyaz, diğerlerini siyah yap
                     gray = cv2.cvtColor(processed_img, cv2.COLOR_BGR2GRAY)
-                    low, high = params['low'], params['high']
-                    mask = (gray >= low) & (gray <= high)
+                    low, high = float(params['low']), float(params['high'])
+                    # Float değerleri int'e çevir (OpenCV uint8 için)
+                    low_int = int(round(low))
+                    high_int = int(round(high))
+                    mask = (gray >= low_int) & (gray <= high_int)
                     result = np.zeros_like(gray, dtype=np.uint8)
                     result[mask] = 255
                     processed_img = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)

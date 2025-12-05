@@ -38,20 +38,20 @@ class EnhancementController:
         Separated so that routes can reuse it for persistence.
         """
         return self.enhancement_service.enhance_image(
-            image_bytes=image_bytes,
-            use_gamma=params.use_gamma,
-            gamma=params.gamma,
-            use_clahe=params.use_clahe,
-            clahe_clip=params.clahe_clip,
-            clahe_tile_size=params.clahe_tile_size or [8, 8],
-            use_ssr=params.use_ssr,
-            ssr_sigma=params.ssr_sigma,
-            use_msr=params.use_msr,
-            msr_sigmas=params.msr_sigmas,
-            use_sharpen=params.use_sharpen,
-            sharpen_method=params.sharpen_method,
-            sharpen_strength=params.sharpen_strength,
-            sharpen_kernel_size=params.sharpen_kernel_size,
+                image_bytes=image_bytes,
+                use_gamma=params.use_gamma,
+                gamma=params.gamma,
+                use_clahe=params.use_clahe,
+                clahe_clip=params.clahe_clip,
+                clahe_tile_size=params.clahe_tile_size or [8, 8],
+                use_ssr=params.use_ssr,
+                ssr_sigma=params.ssr_sigma,
+                use_msr=params.use_msr,
+                msr_sigmas=params.msr_sigmas,
+                use_sharpen=params.use_sharpen,
+                sharpen_method=params.sharpen_method,
+                sharpen_strength=params.sharpen_strength,
+                sharpen_kernel_size=params.sharpen_kernel_size,
             # Eğitimlik temel dönüşümler
             use_negative=params.use_negative,
             use_threshold=params.use_threshold,
@@ -66,15 +66,15 @@ class EnhancementController:
             # DCP tabanlı modlar (pipeline içinden çağrılabilir)
             use_dcp=getattr(params, "use_dcp", False),
             use_dcp_guided=getattr(params, "use_dcp_guided", False),
-            # Low-light özel modları
-            use_lowlight_lime=params.use_lowlight_lime,
-            use_lowlight_dual=params.use_lowlight_dual,
-            lowlight_gamma=params.lowlight_gamma,
-            lowlight_lambda=params.lowlight_lambda,
-            lowlight_sigma=params.lowlight_sigma,
-            lowlight_bc=params.lowlight_bc,
-            lowlight_bs=params.lowlight_bs,
-            lowlight_be=params.lowlight_be,
+                # Low-light özel modları
+                use_lowlight_lime=params.use_lowlight_lime,
+                use_lowlight_dual=params.use_lowlight_dual,
+                lowlight_gamma=params.lowlight_gamma,
+                lowlight_lambda=params.lowlight_lambda,
+                lowlight_sigma=params.lowlight_sigma,
+                lowlight_bc=params.lowlight_bc,
+                lowlight_bs=params.lowlight_bs,
+                lowlight_be=params.lowlight_be,
             order=params.order,
         )
 
@@ -139,7 +139,7 @@ class EnhancementController:
                 enhancement_type=enhancement_type,
                 params=full_params,
             )
-
+            
             return Response(
                 content=enhanced_image_bytes,
                 media_type="image/jpeg",
@@ -147,7 +147,7 @@ class EnhancementController:
                     "Content-Disposition": "attachment; filename=enhanced_image.jpg"
                 }
             )
-
+            
         except ValueError as e:
             error_msg = str(e)
             logger.error(f"Image enhancement validation error: {error_msg}")

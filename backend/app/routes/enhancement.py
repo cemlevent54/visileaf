@@ -424,3 +424,46 @@ async def list_enhancement_results(
         logger.exception(f"Failed to list enhancement results: {e}")
         raise HTTPException(status_code=500, detail="Failed to list enhancement results")
 
+
+@router.post("/results/{image_id}/toggle-star")
+async def toggle_star_result(
+    image_id: str,
+    authorization: str = Header(..., alias="Authorization"),
+    session: Session = Depends(get_session),
+):
+    """
+    Toggle star status for an enhancement result.
+    
+    - **image_id**: Output image UUID (the enhancement result to star/unstar)
+    
+    Returns:
+        dict with 'id' and 'is_starred' status
+    """
+    try:
+        from uuid import UUID
+        
+        auth_service = AuthService(session)
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Authorization header with Bearer token is required")
+        access_token = authorization.replace("Bearer ", "")
+        current_user = auth_service.get_current_user(access_token)
+        user_id = current_user["user"]["id"]
+
+        try:
+            image_uuid = UUID(image_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid image ID format")
+
+        image_service = ImageService(session)
+        result = image_service.toggle_star(image_id=image_uuid, user_id=user_id)
+        return result
+    except ValueError as e:
+        error_msg = str(e)
+        logger.error(f"Toggle star error: {error_msg}")
+        raise HTTPException(status_code=400, detail=error_msg)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Failed to toggle star: {e}")
+        raise HTTPException(status_code=500, detail="Failed to toggle star")
+

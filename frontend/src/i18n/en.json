@@ -213,6 +213,7 @@
             "createdAt": "Created At",
             "input": "Input",
             "output": "Output",
+            "params": "Parameters",
             "actions": "Actions"
         },
         "actions": {

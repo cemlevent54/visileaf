@@ -54,13 +54,13 @@ class EnhancementParams(BaseModel):
         default=False,
         description="Apply gray-level slicing to highlight a specific intensity range"
     )
-    gray_slice_low: int = Field(
-        default=100,
-        description="Lower bound for gray-level slicing (0-255)"
+    gray_slice_low: float = Field(
+        default=100.0,
+        description="Lower bound for gray-level slicing (0.0-255.0)"
     )
-    gray_slice_high: int = Field(
-        default=180,
-        description="Upper bound for gray-level slicing (0-255)"
+    gray_slice_high: float = Field(
+        default=180.0,
+        description="Upper bound for gray-level slicing (0.0-255.0)"
     )
     use_bitplane: bool = Field(
         default=False,

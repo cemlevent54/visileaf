@@ -191,7 +191,7 @@ class ImageService:
                 ImageModel.user_id == user_id,
                 ImageModel.parent_image_id.is_not(None),
             )
-            .order_by(ImageModel.created_at.desc())
+            .order_by(ImageModel.is_starred.desc(), ImageModel.created_at.desc())
             .limit(limit)
         )
         results = self.session.exec(statement).all()
@@ -208,6 +208,7 @@ class ImageService:
                     "output_width": out_img.width,
                     "output_height": out_img.height,
                     "params": out_img.params or {},
+                    "is_starred": out_img.is_starred,
                     "input": {
                         "id": str(parent.id) if parent else None,
                         "path": parent.file_path if parent else None,
@@ -219,5 +220,39 @@ class ImageService:
             )
 
         return items
+
+    def toggle_star(self, image_id: UUID, user_id: UUID) -> Dict[str, Any]:
+        """
+        Toggle star status for an enhancement result (output image).
+        
+        Args:
+            image_id: Output image UUID (the enhancement result to star/unstar)
+            user_id: User UUID (to verify ownership)
+            
+        Returns:
+            dict with 'is_starred' status
+        """
+        image = self.repository.get_by_id(image_id)
+        if not image:
+            raise ValueError(f"Image with id {image_id} not found")
+        
+        # Verify ownership
+        if image.user_id != user_id:
+            raise ValueError("You can only star your own images")
+        
+        # Only output images (with parent) can be starred
+        if image.parent_image_id is None:
+            raise ValueError("Only enhancement results (output images) can be starred")
+        
+        # Toggle star status
+        image.is_starred = not image.is_starred
+        self.session.add(image)
+        self.session.commit()
+        self.session.refresh(image)
+        
+        return {
+            "id": str(image.id),
+            "is_starred": image.is_starred
+        }
 
 

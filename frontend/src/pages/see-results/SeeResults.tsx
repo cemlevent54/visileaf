@@ -21,6 +21,7 @@ interface EnhancementResult {
   output_width: number | null
   output_height: number | null
   params: Record<string, any>
+  is_starred: boolean
   input: EnhancementResultInput
 }
 
@@ -42,13 +43,114 @@ function SeeResults() {
     return `${base}/${cleanPath}`
   }
 
+  const renderParams = (params: Record<string, any>): React.ReactElement => {
+    if (!params || Object.keys(params).length === 0) {
+      return <span>-</span>
+    }
+
+    const activeParams: React.ReactElement[] = []
+    const useFlags: React.ReactElement[] = []
+
+    // Normal parametreleri topla
+    Object.entries(params).forEach(([key, value]) => {
+      // use_* bayraklarını ayrı topla
+      if (key.startsWith('use_')) {
+        // Sadece true olanları göster
+        if (value === true) {
+          const flagName = key.replace('use_', '')
+          useFlags.push(
+            <div key={key} className="see-results-param-item">
+              <strong className="see-results-param-key">{flagName}:</strong>{' '}
+              <span className="see-results-param-value">{String(value)}</span>
+            </div>
+          )
+        }
+        return
+      }
+
+      // Boş değerleri atla
+      if (value === null || value === undefined || value === false) {
+        return
+      }
+
+      let displayValue: string | React.ReactElement
+
+      // order dizisini özel formatta göster
+      if (key === 'order' && Array.isArray(value) && value.length > 0) {
+        displayValue = `[${value.join(', ')}]`
+      }
+      // Dizileri özel formatta göster
+      else if (Array.isArray(value)) {
+        if (value.length > 0) {
+          displayValue = `[${value.join(', ')}]`
+        } else {
+          return
+        }
+      }
+      // Objeleri JSON string olarak göster (kısa)
+      else if (typeof value === 'object') {
+        const jsonStr = JSON.stringify(value)
+        if (jsonStr.length > 30) {
+          displayValue = `${jsonStr.substring(0, 30)}...`
+        } else {
+          displayValue = jsonStr
+        }
+      }
+      // Diğer değerleri direkt ekle
+      else {
+        displayValue = String(value)
+      }
+
+      activeParams.push(
+        <div key={key} className="see-results-param-item">
+          <strong className="see-results-param-key">{key}:</strong>{' '}
+          <span className="see-results-param-value">{displayValue}</span>
+        </div>
+      )
+    })
+
+    const hasParams = activeParams.length > 0
+    const hasUseFlags = useFlags.length > 0
+
+    if (!hasParams && !hasUseFlags) {
+      return <span>-</span>
+    }
+
+    return (
+      <div className="see-results-params-wrapper">
+        {hasParams && (
+          <div className="see-results-params-container">{activeParams}</div>
+        )}
+        {hasUseFlags && (
+          <div className="see-results-use-flags-container">{useFlags}</div>
+        )}
+      </div>
+    )
+  }
+
+  const sortResults = (results: EnhancementResult[]): EnhancementResult[] => {
+    return [...results].sort((a, b) => {
+      // First sort by is_starred (true comes first)
+      if (a.is_starred !== b.is_starred) {
+        // If a is starred and b is not, a comes first (return negative)
+        if (a.is_starred && !b.is_starred) return -1
+        // If b is starred and a is not, b comes first (return positive)
+        if (!a.is_starred && b.is_starred) return 1
+      }
+      // Then sort by created_at (newest first)
+      const dateA = new Date(a.created_at).getTime()
+      const dateB = new Date(b.created_at).getTime()
+      return dateB - dateA
+    })
+  }
+
   useEffect(() => {
     const fetchResults = async () => {
       setLoading(true)
       setError(null)
       try {
         const data = await enhancementService.listResults()
-        setResults(data)
+        setResults(sortResults(data))
       } catch (e: any) {
         setError(e?.message || 'Failed to load results')
       } finally {
@@ -76,6 +178,21 @@ function SeeResults() {
     setModalType(null)
   }
 
+  const handleToggleStar = async (result: EnhancementResult) => {
+    try {
+      const updated = await enhancementService.toggleStar(result.id)
+      // Update local state and re-sort
+      setResults((prevResults) => {
+        const updatedResults = prevResults.map((r) =>
+          r.id === result.id ? { ...r, is_starred: updated.is_starred } : r
+        )
+        return sortResults(updatedResults)
+      })
+    } catch (e: any) {
+      setError(e?.message || 'Failed to toggle star')
+    }
+  }
+
   return (
     <div className="app">
       <Navbar />
@@ -94,9 +211,10 @@ function SeeResults() {
             <table className="see-results-table">
               <thead>
                 <tr>
-                  <th>{t('results.table.id') || 'ID'}</th>
+                  <th style={{ width: '40px' }}></th>
                   <th>{t('results.table.input') || 'Input'}</th>
                   <th>{t('results.table.output') || 'Output'}</th>
+                  <th>{t('results.table.params') || 'Parameters'}</th>
                   <th>{t('results.table.actions') || 'Actions'}</th>
                 </tr>
               </thead>
@@ -106,7 +224,16 @@ function SeeResults() {
                   const outputUrl = buildImageUrl(r.output_path)
                   return (
                     <tr key={r.id}>
-                      <td className="see-results-id">{r.id}</td>
+                      <td className="see-results-star-cell">
+                        <button
+                          type="button"
+                          className={`see-results-star-button ${r.is_starred ? 'starred' : ''}`}
+                          onClick={() => handleToggleStar(r)}
+                          title={r.is_starred ? 'Remove from favorites' : 'Add to favorites'}
+                        >
+                          ★
+                        </button>
+                      </td>
                       <td>
                         {inputUrl ? (
                           <img
@@ -129,7 +256,12 @@ function SeeResults() {
                           <span>-</span>
                         )}
                       </td>
-                      <td>
+                      <td className="see-results-params-cell">
+                        <span className="see-results-params-text">
+                          {renderParams(r.params)}
+                        </span>
+                      </td>
+                      <td className="see-results-actions-cell">
                         <div className="see-results-actions">
                           <button
                             type="button"

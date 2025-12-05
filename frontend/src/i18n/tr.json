@@ -213,6 +213,7 @@
             "createdAt": "Oluşturulma",
             "input": "Giriş",
             "output": "Çıkış",
+            "params": "Parametreler",
             "actions": "Aksiyonlar"
         },
         "actions": {

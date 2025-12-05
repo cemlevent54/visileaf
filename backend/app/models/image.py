@@ -60,6 +60,7 @@ class ImageBase(SQLModel):
         default=None,
         sa_column=Column(JSON)
     )
+    is_starred: bool = Field(default=False, description="Kullanıcının favori olarak işaretlediği sonuçlar")
 
 
 class Image(ImageBase, table=True):
@@ -94,6 +95,7 @@ class ImageUpdate(SQLModel):
     height: Optional[int] = None
     enhancement_type: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
+    is_starred: Optional[bool] = None
 
 
 class ImageResponse(ImageBase):
