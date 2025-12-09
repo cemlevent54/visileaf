@@ -215,7 +215,11 @@
         "outputPlaceholder": "Model yanıtı burada görünecek",
         "responseTitle": "Yanıt",
         "clear": "Temizle",
-        "modelRequired": "Lütfen bir model seçin"
+        "modelRequired": "Lütfen bir model seçin",
+        "models": {
+            "enlightengan": "EnlightenGAN",
+            "zero_dce": "Zero-DCE"
+        }
     },
     "results": {
         "title": "İşlem Sonuçlarını Görüntüle",

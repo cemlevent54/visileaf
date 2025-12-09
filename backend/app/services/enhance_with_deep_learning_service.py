@@ -26,6 +26,7 @@ class EnhanceWithDeepLearningService:
     def __init__(self):
         self._dispatch: Dict[str, Callable[[bytes, str], bytes]] = {
             "enlightengan": self._run_enlightengan,
+            "zero_dce": self._run_zero_dce,
         }
 
     def enhance_with_model(self, *, image_bytes: bytes, model_name: str, original_filename: str) -> bytes:
@@ -264,4 +265,137 @@ class EnhanceWithDeepLearningService:
             pass
 
         return output_bytes
+
+    # ----------------------
+    # Zero-DCE helpers
+    # ----------------------
+    def _get_zero_dce_root(self) -> Path:
+        """
+        Zero-DCE kök klasörü (backend/app/helpers/Zero-DCE).
+        """
+        return Path(__file__).parent.parent / "helpers" / "Zero-DCE"
+
+    def _zero_dce_sync_weights(self, root: Path) -> Path:
+        """
+        weight_and_models içindeki hazır ağırlıkları beklenen konuma kopyalar.
+        - Model: Zero-DCE_code/Epoch99.pth (veya benzeri)
+        
+        Returns:
+            Model ağırlık dosyasının yolu
+        """
+        weights_src_dir = Path(__file__).parent.parent / "weight_and_models" / "Zero-DCE"
+        
+        # Model dosyasını bul (.pth uzantılı)
+        model_files = list(weights_src_dir.glob("*.pth"))
+        if not model_files:
+            raise ValueError(f"Zero-DCE model ağırlığı bulunamadı: {weights_src_dir}")
+        
+        # İlk .pth dosyasını kullan (veya en son olanı)
+        model_src = max(model_files, key=lambda p: p.stat().st_mtime)
+        
+        # Zero-DCE_code klasörüne kopyala
+        zero_dce_code_dir = root / "Zero-DCE_code"
+        zero_dce_code_dir.mkdir(parents=True, exist_ok=True)
+        
+        model_dst = zero_dce_code_dir / model_src.name
+        if not model_dst.exists():
+            shutil.copy(model_src, model_dst)
+            logger.info("Zero-DCE ağırlığı kopyalandı: %s", model_dst)
+        
+        return model_dst
+
+    def _run_zero_dce(self, image_bytes: bytes, original_filename: str) -> bytes:
+        """
+        Zero-DCE test/inference çalıştırır, çıktı bytes döner.
+        """
+        root = self._get_zero_dce_root()
+        if not root.exists():
+            raise ValueError(f"Zero-DCE kökü bulunamadı: {root}")
+
+        # Geçici dosyalar için klasör oluştur
+        suffix = Path(original_filename).suffix or ".jpg"
+        tmp_dir = Path(tempfile.mkdtemp(prefix="zero_dce_", dir=root))
+        input_path = tmp_dir / f"input{suffix}"
+        output_path = tmp_dir / "output.jpg"
+        
+        # Input görseli kaydet
+        input_path.write_bytes(image_bytes)
+
+        try:
+            # Ağırlıkları senkronize et
+            model_path = self._zero_dce_sync_weights(root)
+
+            # Zero-DCE_code klasörünü path'e ekle
+            zero_dce_code_dir = root / "Zero-DCE_code"
+            zero_dce_code_str = str(zero_dce_code_dir)
+            if zero_dce_code_str not in sys.path:
+                sys.path.insert(0, zero_dce_code_str)
+
+            # Model modülünü import et
+            import model as zero_dce_model
+            import torch
+            import torchvision
+            import numpy as np
+
+            # Device ayarı (CPU modu - GPU yoksa)
+            device = torch.device('cpu')
+            if torch.cuda.is_available():
+                # GPU varsa kullanabiliriz ama şimdilik CPU'da çalıştırıyoruz
+                # device = torch.device('cuda')
+                pass
+
+            logger.info(f"Zero-DCE Device: {device}")
+            logger.info(f"Zero-DCE Loading model from: {model_path}")
+
+            # Modeli yükle
+            DCE_net = zero_dce_model.enhance_net_nopool()
+            DCE_net.load_state_dict(torch.load(str(model_path), map_location=device))
+            DCE_net.to(device)
+            DCE_net.eval()
+
+            # Görseli yükle ve ön işle
+            logger.info(f"Zero-DCE Loading image: {input_path}")
+            data_lowlight = Image.open(input_path)
+
+            # RGB'ye çevir (eğer RGBA veya grayscale ise)
+            if data_lowlight.mode != 'RGB':
+                data_lowlight = data_lowlight.convert('RGB')
+
+            # Normalize et [0, 1] aralığına
+            data_lowlight = np.asarray(data_lowlight) / 255.0
+
+            # Tensor'a çevir ve batch dimension ekle
+            data_lowlight = torch.from_numpy(data_lowlight).float()
+            data_lowlight = data_lowlight.permute(2, 0, 1)  # HWC -> CHW
+            data_lowlight = data_lowlight.unsqueeze(0)  # Batch dimension ekle
+            data_lowlight = data_lowlight.to(device)
+
+            # Inference
+            logger.info("Zero-DCE Processing image...")
+            with torch.no_grad():
+                _, enhanced_image, _ = DCE_net(data_lowlight)
+
+            # Sonucu kaydet
+            logger.info(f"Zero-DCE Saving result to: {output_path}")
+            torchvision.utils.save_image(enhanced_image, output_path)
+
+            # Çıktıyı oku
+            output_bytes = output_path.read_bytes()
+
+            # Temizlik
+            try:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            except Exception:
+                pass
+
+            return output_bytes
+
+        except Exception as exc:
+            logger.exception("Zero-DCE predict başarısız")
+            # Temizlik
+            try:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            except Exception:
+                pass
+            raise ValueError(f"Zero-DCE predict başarısız: {exc}") from exc
 

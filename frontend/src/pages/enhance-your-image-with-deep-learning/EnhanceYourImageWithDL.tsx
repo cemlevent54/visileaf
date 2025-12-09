@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import Navbar from '../../components/navbar/Navbar'
 import Snackbar from '../../components/snackbar/Snackbar'
 import enhancementService from '../../services/enhancement.service'
@@ -6,12 +6,14 @@ import { useTranslation } from '../../hooks/useTranslation'
 import Select from '../../components/select/Select'
 import './EnhanceYourImageWithDL.css'
 
-const MODEL_OPTIONS = [
-  { value: 'enlightengan', label: 'EnlightenGAN' },
-]
-
 function EnhanceYourImageWithDL() {
   const { t } = useTranslation()
+  
+  // Model seçeneklerini i18n'den çek
+  const MODEL_OPTIONS = useMemo(() => [
+    { value: 'enlightengan', label: t('enhanceDL.models.enlightengan') },
+    { value: 'zero_dce', label: t('enhanceDL.models.zero_dce') },
+  ], [t])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [inputImage, setInputImage] = useState<File | null>(null)
