@@ -35,3 +35,9 @@ Pillow>=10.0.0
 
 # Scientific computing (LIME/DUAL low-light enhancement)
 scipy>=1.11.0
+
+# Deep Learning - EnlightenGAN dependencies
+dominate>=2.8.0
+torch>=2.0.0
+torchvision>=0.15.0
+visdom>=0.2.4

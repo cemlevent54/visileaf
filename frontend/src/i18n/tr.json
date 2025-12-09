@@ -5,6 +5,7 @@
         "contact": "İletişim",
         "enhanceImage": "Görüntü Geliştir",
         "seeResults": "Sonuçları Gör",
+        "enhanceImageDL": "Görüntü Geliştir (DL)",
         "login": "Giriş Yap",
         "signUp": "Kayıt Ol",
         "myAccount": "Hesabım",
@@ -202,6 +203,19 @@
         "graySliceHigh": "Dilim üst sınırı",
         "useBitplane": "Bit-plane dilimleme kullan",
         "bitplaneBit": "Bit-plane biti (0-7)"
+    },
+    "enhanceDL": {
+        "title": "Görüntünü Derin Öğrenme ile Geliştir",
+        "subtitle": "Hazır derin öğrenme modelleriyle görselini iyileştir. Modeli seç, tek tıkla gönder.",
+        "modelSelectionTitle": "Model Seçimi",
+        "modelLabel": "Model adı",
+        "modelPlaceholder": "Model seçin",
+        "modelHint": "Seçilen model params_json içinde model_name olarak gönderilir.",
+        "outputTitle": "Çıktı",
+        "outputPlaceholder": "Model yanıtı burada görünecek",
+        "responseTitle": "Yanıt",
+        "clear": "Temizle",
+        "modelRequired": "Lütfen bir model seçin"
     },
     "results": {
         "title": "İşlem Sonuçlarını Görüntüle",

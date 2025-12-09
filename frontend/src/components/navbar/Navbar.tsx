@@ -116,16 +116,15 @@ function Navbar() {
           <li className="navbar-item">
             <Link to="/" onClick={closeMobileMenu}>{t('navbar.home')}</Link>
           </li>
-          <li className="navbar-item">
-            <a href="#about" onClick={closeMobileMenu}>{t('navbar.about')}</a>
-          </li>
-          <li className="navbar-item">
-            <a href="#contact" onClick={closeMobileMenu}>{t('navbar.contact')}</a>
-          </li>
           {isLoggedIn && (
             <>
               <li className="navbar-item">
                 <Link to="/enhance-your-image" onClick={closeMobileMenu}>{t('navbar.enhanceImage')}</Link>
+              </li>
+              <li className="navbar-item">
+                <Link to="/enhance-your-image-with-deep-learning" onClick={closeMobileMenu}>
+                  {t('navbar.enhanceImageDL')}
+                </Link>
               </li>
               <li className="navbar-item">
                 <Link to="/see-results" onClick={closeMobileMenu}>{t('navbar.seeResults')}</Link>

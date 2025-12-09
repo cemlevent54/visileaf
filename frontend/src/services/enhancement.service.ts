@@ -46,6 +46,36 @@ class EnhancementService {
     }
 
     /**
+     * Deep learning tabanlı hazır model ile enhancement (binary response).
+     */
+    async enhanceImageWithDeepLearning(
+        imageFile: File,
+        modelName: string
+    ): Promise<Blob> {
+        const url = `${this.baseUrl}/api/enhancement/with-deep-learning`
+
+        const formData = new FormData()
+        formData.append('image', imageFile)
+        formData.append('params_json', JSON.stringify({ model_name: modelName }))
+
+        const headers = getAuthHeadersForFormData()
+
+        const response = await apiRequest(url, {
+            method: 'POST',
+            headers,
+            body: formData,
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            const errorMessage = errorData.detail || errorData.message || 'Deep learning enhancement failed'
+            throw new Error(errorMessage)
+        }
+
+        return await response.blob()
+    }
+
+    /**
      * Enhance an image with specified parameters
      */
     async enhanceImage(

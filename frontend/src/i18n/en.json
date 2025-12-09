@@ -5,6 +5,7 @@
         "contact": "Contact",
         "enhanceImage": "Enhance Image",
         "seeResults": "See Results",
+        "enhanceImageDL": "Enhance Image (DL)",
         "login": "Login",
         "signUp": "Sign Up",
         "myAccount": "My Account",
@@ -202,6 +203,19 @@
         "graySliceHigh": "Slice upper bound",
         "useBitplane": "Use bit-plane slicing",
         "bitplaneBit": "Bit-plane bit (0-7)"
+    },
+    "enhanceDL": {
+        "title": "Enhance Your Image with Deep Learning",
+        "subtitle": "Use ready deep learning models to improve your visuals. Pick a model and send in one click.",
+        "modelSelectionTitle": "Model Selection",
+        "modelLabel": "Model name",
+        "modelPlaceholder": "Select a model",
+        "modelHint": "Selected model is sent inside params_json as model_name.",
+        "outputTitle": "Output",
+        "outputPlaceholder": "Model response will be shown here",
+        "responseTitle": "Response",
+        "clear": "Clear",
+        "modelRequired": "Please select a model"
     },
     "results": {
         "title": "View Processing Results",

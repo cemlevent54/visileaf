@@ -510,6 +510,57 @@
         }
       }
     },
+    "/api/enhancement/with-deep-learning": {
+      "post": {
+        "tags": [
+          "enhancement"
+        ],
+        "summary": "Enhance Image With Deep Learning",
+        "description": "Derin öğrenme tabanlı hazır modelleri kullanarak enhancement.\n\n- **image**: İşlenecek görsel dosyası (JPEG, PNG, vb.)\n- **params_json**: Form-data alanı, içinde `model_name` beklenir. Örn:\n    `{\"model_name\": \"enlightengan\"}`\n\nNot: EnlightenGAN servisine entegre, sonuç DB'ye kaydedilir.",
+        "operationId": "enhance_image_with_deep_learning_api_enhancement_with_deep_learning_post",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_enhance_image_with_deep_learning_api_enhancement_with_deep_learning_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/enhancement/results": {
       "get": {
         "tags": [
@@ -708,6 +759,27 @@
           "image"
         ],
         "title": "Body_enhance_image_with_dcp_guided_api_enhancement_dcp_guided_filter_post"
+      },
+      "Body_enhance_image_with_deep_learning_api_enhancement_with_deep_learning_post": {
+        "properties": {
+          "image": {
+            "type": "string",
+            "format": "binary",
+            "title": "Image",
+            "description": "Model ile işlenecek görsel"
+          },
+          "params_json": {
+            "type": "string",
+            "title": "Params Json",
+            "description": "Örn: {\"model_name\": \"...\", ... }"
+          }
+        },
+        "type": "object",
+        "required": [
+          "image",
+          "params_json"
+        ],
+        "title": "Body_enhance_image_with_deep_learning_api_enhancement_with_deep_learning_post"
       },
       "EnhancementParams": {
         "properties": {

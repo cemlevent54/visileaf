@@ -1,0 +1,29 @@
+# Tüm dosya ve klasörleri ignore et
+*
+
+# Ancak şu klasörleri dahil et (keep)
+!util/
+!models/
+!options/
+!lib/
+!data/
+
+# Bu klasörlerin içindeki tüm dosyaları dahil et
+!util/**
+!models/**
+!options/**
+!lib/**
+!data/**
+
+# .gitignore dosyasını da dahil et
+!.gitignore
+
+# __pycache__ ve .pyc dosyalarını ignore et (her yerde)
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Geçici dosyalar
+**/.DS_Store
+**/Thumbs.db

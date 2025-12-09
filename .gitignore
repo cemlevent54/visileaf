@@ -4,3 +4,4 @@ __pycache__/
 dataset/
 results/
 backend/uploads/
+backend/app/weight_and_models/

@@ -4,7 +4,10 @@ Enhancement routes - Image enhancement endpoints
 import json
 import logging
 from fastapi import APIRouter, File, Form, UploadFile, Request, Body, HTTPException, Header, Depends
+from fastapi.responses import Response
 from app.controllers.enhancement_controller import EnhancementController
+from app.controllers.deep_learning_enhancement_controller import DeepLearningEnhancementController
+from app.services.enhance_with_deep_learning_service import EnhanceWithDeepLearningService
 from app.services.enhancement_service import EnhancementService
 from app.services.image_service import ImageService
 from app.services.auth_service import AuthService
@@ -392,6 +395,77 @@ async def enhance_image_with_dcp_guided(
     except Exception as e:
         error_msg = f"DCP Guided image enhancement failed: {str(e)}"
         logger.exception(f"Unexpected error during DCP Guided enhancement: {error_msg}")
+        raise HTTPException(status_code=500, detail=error_msg)
+
+
+@router.post("/with-deep-learning")
+async def enhance_image_with_deep_learning(
+    request: Request,
+    image: UploadFile = File(..., description="Model ile işlenecek görsel"),
+    params_json: str = Form(..., description="Örn: {\"model_name\": \"...\"," " ... }"),
+    authorization: str = Header(..., alias="Authorization"),
+    session: Session = Depends(get_session),
+):
+    """
+    Derin öğrenme tabanlı hazır modelleri kullanarak enhancement.
+
+    - **image**: İşlenecek görsel dosyası (JPEG, PNG, vb.)
+    - **params_json**: Form-data alanı, içinde `model_name` beklenir. Örn:
+        `{"model_name": "enlightengan"}`
+
+    Not: EnlightenGAN servisine entegre, sonuç DB'ye kaydedilir.
+    """
+    logger.info(
+        f"DL Enhancement request received - Image: {image.filename}, "
+        f"Size: {image.size if hasattr(image, 'size') else 'unknown'}"
+    )
+
+    try:
+        # Auth
+        auth_service = AuthService(session)
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Authorization header with Bearer token is required")
+        access_token = authorization.replace("Bearer ", "")
+        current_user = auth_service.get_current_user(access_token)
+        user_id = current_user["user"]["id"]
+
+        # Params parse
+        try:
+            params_dict = json.loads(params_json)
+            model_name = params_dict.get("model_name")
+            if not model_name:
+                raise HTTPException(status_code=400, detail="params_json içinde model_name zorunludur")
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON format: {str(e)}")
+
+        # Görseli oku
+        image_bytes = await image.read()
+        logger.debug(f"DL Image bytes read: {len(image_bytes)} bytes")
+
+        dl_service = EnhanceWithDeepLearningService()
+        controller = DeepLearningEnhancementController(dl_service, request)
+
+        # ImageService ile DB kaydı
+        image_service = ImageService(session)
+        response = controller.enhance_with_model_and_persistence(
+            image_bytes=image_bytes,
+            model_name=model_name,
+            image_service=image_service,
+            user_id=user_id,
+            original_filename=image.filename,
+            extra_params=params_dict if isinstance(params_dict, dict) else {"raw_params": params_json},
+        )
+        return response
+
+    except HTTPException:
+        raise
+    except ValueError as e:
+        error_msg = str(e)
+        logger.error(f"DL Value error: {error_msg}")
+        raise HTTPException(status_code=400, detail=error_msg)
+    except Exception as e:
+        error_msg = f"Deep learning enhancement failed: {str(e)}"
+        logger.exception(f"Unexpected error during DL enhancement: {error_msg}")
         raise HTTPException(status_code=500, detail=error_msg)
 
 

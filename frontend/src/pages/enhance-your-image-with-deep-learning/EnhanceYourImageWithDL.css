@@ -1,0 +1,500 @@
+.enhance-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.enhance-main {
+    flex: 1;
+    padding: 2rem;
+    background: #ffffff;
+}
+
+.enhance-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 3rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.enhance-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #213547;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.enhance-subtitle {
+    color: #000000;
+    text-align: center;
+    margin-bottom: 3rem;
+    font-size: 1.1rem;
+}
+
+.enhance-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 3rem;
+    align-items: start;
+}
+
+.enhance-images-column {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.enhance-parameters-column {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    position: sticky;
+    top: calc(80px + 2rem);
+    align-self: start;
+}
+
+.parameters-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #213547;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.parameters-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.parameter-group {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.parameter-group .input-group,
+.parameter-group .volume-slider-group,
+.parameter-group .checkbox-group,
+.parameter-group .radio-group {
+    margin-bottom: 1rem;
+}
+
+.parameter-group .input-group:last-child,
+.parameter-group .volume-slider-group:last-child,
+.parameter-group .checkbox-group:last-child,
+.parameter-group .radio-group:last-child {
+    margin-bottom: 0;
+}
+
+.parameter-group-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #213547;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.tile-size-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.msr-sigmas-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.order-hint {
+    font-size: 0.875rem;
+    color: #000000;
+    margin-bottom: 1rem;
+}
+
+.order-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.order-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: move;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.order-item:hover {
+    background: #f0f0f0;
+    border-color: #646cff;
+}
+
+.order-item.dragging {
+    opacity: 0.5;
+    background: #e0e0ff;
+}
+
+.order-drag-handle {
+    font-size: 1.2rem;
+    color: #999;
+    cursor: grab;
+}
+
+.order-drag-handle:active {
+    cursor: grabbing;
+}
+
+.order-method-name {
+    flex: 1;
+    font-weight: 500;
+    color: #000000;
+}
+
+.order-number {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #646cff;
+    color: white;
+    border-radius: 50%;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.order-reset-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    background: #f0f0f0;
+    color: #213547;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.order-reset-button:hover {
+    background: #e0e0e0;
+    border-color: #999;
+}
+
+.image-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #213547;
+    margin-bottom: 0.5rem;
+}
+
+.image-upload-area,
+.image-display-area {
+    min-height: 400px;
+    border: 2px dashed #646cff;
+    border-radius: 12px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.image-upload-area:hover {
+    border-color: #535bf2;
+    background: #ffffff;
+}
+
+.image-display-area {
+    cursor: default;
+    border-color: #4caf50;
+    background: #ffffff;
+}
+
+.upload-placeholder,
+.output-placeholder {
+    text-align: center;
+    padding: 2rem;
+}
+
+.upload-icon,
+.placeholder-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.upload-text,
+.placeholder-text {
+    font-size: 1.2rem;
+    color: #000000;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.upload-hint {
+    font-size: 0.9rem;
+    color: #000000;
+}
+
+.image-preview-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+}
+
+.image-preview {
+    max-width: 100%;
+    max-height: 500px;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.clear-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #dc3545;
+    color: #dc3545;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.clear-button:hover {
+    background: #dc3545;
+    color: white;
+    transform: scale(1.1);
+}
+
+.download-button {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    padding: 0.75rem 1.5rem;
+    background: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.download-button:hover {
+    background: #45a049;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(76, 175, 80, 0.5);
+}
+
+.image-info {
+    font-size: 0.9rem;
+    color: #000000;
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.action-section {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 2rem;
+}
+
+.enhance-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.enhance-button {
+    padding: 1rem 2.5rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, #646cff 0%, #535bf2 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(100, 108, 255, 0.4);
+    min-width: 200px;
+}
+
+.enhance-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(100, 108, 255, 0.5);
+}
+
+.enhance-button:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.enhance-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Force light mode - all text black, background white */
+.enhance-title,
+.enhance-subtitle,
+.section-title,
+.parameter-group-title,
+.parameters-title,
+.upload-text,
+.placeholder-text,
+.upload-hint,
+.image-info,
+.order-hint,
+.order-method-name {
+    color: #000000 !important;
+}
+
+.enhance-main,
+.enhance-container,
+.enhance-parameters-column,
+.parameter-group {
+    background: #ffffff !important;
+}
+
+/* Override component text colors in enhance page - Force black text */
+.enhance-parameters-column .input-label,
+.enhance-parameters-column .volume-slider-label,
+.enhance-parameters-column .checkbox-label,
+.enhance-parameters-column .radio-label {
+    color: #000000 !important;
+}
+
+.enhance-parameters-column .checkbox-text,
+.enhance-parameters-column .radio-text,
+.enhance-parameters-column .checkbox-label-option,
+.enhance-parameters-column .radio-label-option,
+.enhance-parameters-column .checkbox-input:checked+.checkbox-label-option .checkbox-text,
+.enhance-parameters-column .radio-input:checked+.radio-label-option .radio-text,
+.enhance-parameters-column .checkbox-label-option.checked .checkbox-text,
+.enhance-parameters-column .radio-label-option.checked .radio-text {
+    color: #000000 !important;
+}
+
+.enhance-parameters-column .input-field {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #e0e0e0 !important;
+}
+
+/* Force all checkbox and radio text to black in enhance page - comprehensive override */
+.enhance-parameters-column .checkbox-text,
+.enhance-parameters-column .radio-text,
+.enhance-parameters-column .checkbox-label-option,
+.enhance-parameters-column .radio-label-option,
+.enhance-parameters-column .parameter-group .checkbox-text,
+.enhance-parameters-column .parameter-group .radio-text,
+.enhance-parameters-column .parameter-group .checkbox-label-option,
+.enhance-parameters-column .parameter-group .radio-label-option,
+.enhance-parameters-column .parameter-group .checkbox-label-option .checkbox-text,
+.enhance-parameters-column .parameter-group .radio-label-option .radio-text,
+.enhance-parameters-column .checkbox-input:checked+.checkbox-label-option .checkbox-text,
+.enhance-parameters-column .radio-input:checked+.radio-label-option .radio-text,
+.enhance-parameters-column .parameter-group .checkbox-input:checked+.checkbox-label-option .checkbox-text,
+.enhance-parameters-column .parameter-group .radio-input:checked+.radio-label-option .radio-text,
+.enhance-parameters-column .checkbox-label-option.checked .checkbox-text,
+.enhance-parameters-column .radio-label-option.checked .radio-text,
+.enhance-parameters-column .parameter-group .checkbox-label-option.checked .checkbox-text,
+.enhance-parameters-column .parameter-group .radio-label-option.checked .radio-text,
+.enhance-parameters-column label .checkbox-text,
+.enhance-parameters-column label .radio-text {
+    color: #000000 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .enhance-layout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+
+    .enhance-parameters-column {
+        position: static;
+        max-height: none;
+        align-self: stretch;
+    }
+
+    .action-section {
+        padding-top: 0;
+    }
+
+    .enhance-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .enhance-button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .enhance-container {
+        padding: 2rem 1.5rem;
+    }
+
+    .enhance-title {
+        font-size: 2rem;
+    }
+
+    .image-upload-area,
+    .image-display-area {
+        min-height: 300px;
+    }
+
+    .image-preview-container {
+        min-height: 300px;
+    }
+
+    .image-preview {
+        max-height: 300px;
+    }
+}
