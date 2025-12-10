@@ -41,3 +41,7 @@ dominate>=2.8.0
 torch>=2.0.0
 torchvision>=0.15.0
 visdom>=0.2.4
+
+# Deep Learning - LLFlow dependencies
+natsort>=8.4.0
+pyyaml>=6.0.1

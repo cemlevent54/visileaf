@@ -13,6 +13,7 @@ function EnhanceYourImageWithDL() {
   const MODEL_OPTIONS = useMemo(() => [
     { value: 'enlightengan', label: t('enhanceDL.models.enlightengan') },
     { value: 'zero_dce', label: t('enhanceDL.models.zero_dce') },
+    { value: 'llflow', label: t('enhanceDL.models.llflow') },
   ], [t])
   const fileInputRef = useRef<HTMLInputElement>(null)
 

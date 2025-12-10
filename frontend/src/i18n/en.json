@@ -218,7 +218,8 @@
         "modelRequired": "Please select a model",
         "models": {
             "enlightengan": "EnlightenGAN",
-            "zero_dce": "Zero-DCE"
+            "zero_dce": "Zero-DCE",
+            "llflow": "LLFlow"
         }
     },
     "results": {

@@ -10,9 +10,13 @@ import shutil
 import tempfile
 import io
 from pathlib import Path
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
 import logging
 from PIL import Image
+import cv2
+import numpy as np
+import torch
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +31,7 @@ class EnhanceWithDeepLearningService:
         self._dispatch: Dict[str, Callable[[bytes, str], bytes]] = {
             "enlightengan": self._run_enlightengan,
             "zero_dce": self._run_zero_dce,
+            "llflow": self._run_llflow,
         }
 
     def enhance_with_model(self, *, image_bytes: bytes, model_name: str, original_filename: str) -> bytes:
@@ -398,4 +403,379 @@ class EnhanceWithDeepLearningService:
             except Exception:
                 pass
             raise ValueError(f"Zero-DCE predict başarısız: {exc}") from exc
+
+    # ----------------------
+    # LLFlow helpers
+    # ----------------------
+    def _get_llflow_root(self) -> Path:
+        """
+        LLFlow kök klasörü (backend/app/helpers/LLFlow).
+        """
+        return Path(__file__).parent.parent / "helpers" / "LLFlow"
+
+    def _llflow_sync_weights(self, root: Path) -> Path:
+        """
+        weight_and_models içindeki hazır ağırlıkları beklenen konuma kopyalar.
+        - Model: LLFlow/LOLv2.pth
+        
+        Returns:
+            Model ağırlık dosyasının yolu
+        """
+        weights_src_dir = Path(__file__).parent.parent / "weight_and_models" / "LLFlow"
+        
+        # Model dosyasını bul (.pth uzantılı)
+        model_files = list(weights_src_dir.glob("*.pth"))
+        if not model_files:
+            raise ValueError(f"LLFlow model ağırlığı bulunamadı: {weights_src_dir}")
+        
+        # İlk .pth dosyasını kullan (veya en son olanı)
+        model_src = max(model_files, key=lambda p: p.stat().st_mtime)
+        
+        # LLFlow root klasörüne kopyala
+        root.mkdir(parents=True, exist_ok=True)
+        
+        model_dst = root / model_src.name
+        if not model_dst.exists():
+            shutil.copy(model_src, model_dst)
+            logger.info("LLFlow ağırlığı kopyalandı: %s", model_dst)
+        else:
+            logger.info("LLFlow ağırlığı zaten mevcut: %s", model_dst)
+        
+        return model_dst
+
+    def _llflow_imread(self, path: Path):
+        """Görüntüyü RGB formatında okur"""
+        img = cv2.imread(str(path))
+        if img is None:
+            raise ValueError(f"Görüntü okunamadı: {path}")
+        return img[:, :, [2, 1, 0]]  # BGR'den RGB'ye çevir
+
+    def _llflow_imwrite(self, path: Path, img):
+        """Görüntüyü kaydeder"""
+        path.parent.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(path), img[:, :, [2, 1, 0]])  # RGB'den BGR'ye çevir
+
+    def _llflow_t(self, array):
+        """NumPy array'i PyTorch tensor'üne çevirir"""
+        return torch.Tensor(np.expand_dims(array.transpose([2, 0, 1]), axis=0).astype(np.float32)) / 255
+
+    def _llflow_rgb(self, tensor):
+        """PyTorch tensor'ünü RGB görüntüye çevirir"""
+        return (np.clip((tensor[0] if len(tensor.shape) == 4 else tensor).detach().cpu().numpy().transpose([1, 2, 0]), 0, 1) * 255).astype(np.uint8)
+
+    def _llflow_auto_padding(self, img, times=16):
+        """Görüntüyü belirli bir sayıya bölünebilir hale getirmek için padding yapar"""
+        h, w, _ = img.shape
+        h1, w1 = (times - h % times) // 2, (times - w % times) // 2
+        h2, w2 = (times - h % times) - h1, (times - w % times) - w1
+        img = cv2.copyMakeBorder(img, h1, h2, w1, w2, cv2.BORDER_REFLECT)
+        return img, [h1, h2, w1, w2]
+
+    def _llflow_hiseq_color_cv2_img(self, img):
+        """Histogram eşitleme yapar"""
+        # RGB'den BGR'ye çevir (cv2 fonksiyonları için)
+        img_bgr = img[:, :, [2, 1, 0]]
+        (b, g, r) = cv2.split(img_bgr)
+        bH = cv2.equalizeHist(b)
+        gH = cv2.equalizeHist(g)
+        rH = cv2.equalizeHist(r)
+        result = cv2.merge((bH, gH, rH))
+        # BGR'den RGB'ye geri çevir
+        return result[:, :, [2, 1, 0]]
+
+    def _llflow_get_default_config(self):
+        """Varsayılan config dictionary'si döndürür"""
+        return {
+            'name': 'independent_test',
+            'use_tb_logger': False,
+            'model': 'LLFlow',
+            'distortion': 'sr',
+            'scale': 1,
+            'gpu_ids': [],
+            'dataset': 'LoL',
+            'optimize_all_z': False,
+            'cond_encoder': 'ConEncoder1',
+            'train_gt_ratio': 0.5,
+            'avg_color_map': False,
+            'concat_histeq': True,
+            'histeq_as_input': False,
+            'concat_color_map': False,
+            'gray_map': False,
+            'align_condition_feature': False,
+            'align_weight': 0.001,
+            'align_maxpool': True,
+            'to_yuv': False,
+            'encode_color_map': False,
+            'le_curve': False,
+            'datasets': {
+                'train': {
+                    'root': '',
+                    'quant': 32,
+                    'use_shuffle': True,
+                    'n_workers': 1,
+                    'batch_size': 16,
+                    'use_flip': True,
+                    'color': 'RGB',
+                    'use_crop': True,
+                    'GT_size': 160,
+                    'noise_prob': 0,
+                    'noise_level': 5,
+                    'log_low': True,
+                    'gamma_aug': False
+                },
+                'val': {
+                    'root': '',
+                    'n_workers': 1,
+                    'quant': 32,
+                    'n_max': 20,
+                    'batch_size': 1,
+                    'log_low': True
+                }
+            },
+            'heat': 0,
+            'network_G': {
+                'which_model_G': 'LLFlow',
+                'in_nc': 3,
+                'out_nc': 3,
+                'nf': 64,
+                'nb': 24,
+                'train_RRDB': False,
+                'train_RRDB_delay': 0.5,
+                'flow': {
+                    'K': 12,
+                    'L': 3,
+                    'noInitialInj': True,
+                    'coupling': 'CondAffineSeparatedAndCond',
+                    'additionalFlowNoAffine': 2,
+                    'split': {
+                        'enable': False
+                    },
+                    'fea_up0': True,
+                    'stackRRDB': {
+                        'blocks': [1, 3, 5, 7],
+                        'concat': True
+                    }
+                }
+            },
+            'path': {
+                'strict_load': True,
+                'resume_state': 'auto'
+            },
+            'train': {
+                'manual_seed': 10,
+                'lr_G': 5e-4,
+                'weight_decay_G': 0,
+                'beta1': 0.9,
+                'beta2': 0.99,
+                'lr_scheme': 'MultiStepLR',
+                'warmup_iter': 200,
+                'lr_steps_rel': [0.5, 0.75, 0.9, 0.95],
+                'lr_gamma': 0.5,
+                'weight_l1': 0,
+                'weight_fl': 1,
+                'niter': 40000,
+                'val_freq': 1000
+            },
+            'val': {
+                'n_sample': 4
+            },
+            'test': {
+                'heats': [0.0, 0.7, 0.8, 0.9]
+            },
+            'logger': {
+                'print_freq': 100,
+                'save_checkpoint_freq': 1e4
+            }
+        }
+
+    def _llflow_load_model(self, root: Path, model_path: Path, config_path: Optional[Path] = None):
+        """Modeli config dosyasından veya varsayılan config'den yükler"""
+        # code klasörünü path'e ekle
+        code_dir = root / "code"
+        code_dir_str = str(code_dir)
+        if code_dir_str not in sys.path:
+            sys.path.insert(0, code_dir_str)
+
+        import options.options as option
+        from models import create_model
+
+        if config_path and config_path.exists():
+            # Config dosyasından yükle
+            opt = option.parse(str(config_path), is_train=False)
+        else:
+            # Varsayılan config kullan
+            logger.info("LLFlow: Config dosyası belirtilmedi veya bulunamadı, varsayılan config kullanılıyor...")
+            default_config = self._llflow_get_default_config()
+            
+            # Geçici bir YAML dosyası oluştur
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+                yaml.dump(default_config, f, default_flow_style=False, allow_unicode=True)
+                temp_config_path = f.name
+            
+            try:
+                opt = option.parse(temp_config_path, is_train=False)
+            finally:
+                # Geçici dosyayı sil
+                os.unlink(temp_config_path)
+        
+        # options.py parse işlemi için gpu_ids boş liste olmalı (None kabul etmiyor)
+        # Ama BaseModel None bekliyor, bu yüzden parse sonrası None yapacağız
+        opt = option.dict_to_nonedict(opt)
+        
+        # BaseModel için gpu_ids None olmalı (CPU modu)
+        # BaseModel: self.device = torch.device('cuda' if opt.get('gpu_ids', None) is not None else 'cpu')
+        if not opt.get('gpu_ids') or len(opt.get('gpu_ids', [])) == 0:
+            opt['gpu_ids'] = None
+        
+        # Model yolunu override et
+        opt['model_path'] = str(model_path)
+        
+        model = create_model(opt)
+        model.load_network(load_path=str(model_path), network=model.netG)
+        
+        # BaseModel zaten device'ı ayarlıyor, ekstra taşıma gerekmez
+        # Ancak CUDA yoksa CPU'ya taşımayı garanti et
+        if not torch.cuda.is_available() and model.device.type == 'cuda':
+            model.device = torch.device('cpu')
+            model.netG = model.netG.cpu()
+        
+        return model, opt
+
+    def _run_llflow(self, image_bytes: bytes, original_filename: str) -> bytes:
+        """
+        LLFlow test/inference çalıştırır, çıktı bytes döner.
+        test_unpaired.py'deki fonksiyonları kullanır.
+        """
+        root = self._get_llflow_root()
+        if not root.exists():
+            raise ValueError(f"LLFlow kökü bulunamadı: {root}")
+
+        # code klasörünü path'e ekle
+        code_dir = root / "code"
+        code_dir_str = str(code_dir)
+        if code_dir_str not in sys.path:
+            sys.path.insert(0, code_dir_str)
+
+        # test_unpaired.py'deki fonksiyonları import et
+        try:
+            import test_unpaired as llflow_test
+        except ImportError as e:
+            raise ValueError(f"LLFlow test_unpaired.py import edilemedi: {e}")
+
+        # Geçici dosyalar için klasör oluştur
+        suffix = Path(original_filename).suffix or ".jpg"
+        tmp_dir = Path(tempfile.mkdtemp(prefix="llflow_", dir=root))
+        input_path = tmp_dir / f"input{suffix}"
+        output_path = tmp_dir / "output.jpg"
+        
+        # Input görseli kaydet
+        input_path.write_bytes(image_bytes)
+
+        try:
+            # Ağırlıkları senkronize et
+            model_path = self._llflow_sync_weights(root)
+
+            # Config dosyası bul (varsa) veya varsayılan config kullan
+            config_path = root / "code" / "confs" / "LOLv2-pc.yml"
+            if not config_path.exists():
+                config_path = None  # Varsayılan config kullanılacak
+            
+            # Modeli yükle (test_unpaired.py'deki load_model kullan)
+            logger.info(f"LLFlow: Model yükleniyor: {model_path}")
+            if config_path and config_path.exists():
+                # Config dosyasından model yükle
+                # Önce config'i parse et ve model_path'i ekle
+                import options.options as option
+                from utils.util import opt_get
+                temp_opt = option.parse(str(config_path), is_train=False)
+                temp_opt['gpu_ids'] = None
+                temp_opt['model_path'] = str(model_path)  # Model path'i ekle
+                temp_opt = option.dict_to_nonedict(temp_opt)
+                
+                # Geçici bir YAML dosyası oluştur ve model_path'i ekle
+                import yaml
+                with open(config_path, 'r') as f:
+                    config_dict = yaml.load(f, Loader=yaml.FullLoader)
+                config_dict['model_path'] = str(model_path)
+                
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.yml', delete=False) as f:
+                    yaml.dump(config_dict, f, default_flow_style=False, allow_unicode=True)
+                    temp_config_path = f.name
+                
+                try:
+                    model, opt = llflow_test.load_model(temp_config_path)
+                finally:
+                    os.unlink(temp_config_path)
+            else:
+                # Varsayılan config ile model yükle
+                model, opt = self._llflow_load_model(root, model_path, config_path=None)
+            
+            # CPU modunu garanti et
+            if not torch.cuda.is_available():
+                model.netG = model.netG.cpu()
+                model.device = torch.device('cpu')
+
+            # Görüntüyü oku (test_unpaired.py'deki imread kullan)
+            logger.info(f"LLFlow: Görüntü okunuyor: {input_path}")
+            lr = llflow_test.imread(str(input_path))
+            raw_shape = lr.shape
+            
+            # Padding yap (test_unpaired.py'deki auto_padding kullan)
+            lr, padding_params = llflow_test.auto_padding(lr)
+            
+            # Histogram eşitleme (test_unpaired.py'deki hiseq_color_cv2_img kullan)
+            his = llflow_test.hiseq_color_cv2_img(lr)
+            if opt.get("histeq_as_input", False):
+                lr = his
+            
+            # Tensor'e çevir (test_unpaired.py'deki t kullan)
+            lr_t = llflow_test.t(lr)
+            
+            # Log transformasyonu (eğer config'de varsa)
+            if opt["datasets"]["train"].get("log_low", False):
+                lr_t = torch.log(torch.clamp(lr_t + 1e-3, min=1e-3))
+            
+            # Histogram eşitleme concatenation (eğer config'de varsa)
+            if opt.get("concat_histeq", False):
+                his_t = llflow_test.t(his)
+                lr_t = torch.cat([lr_t, his_t], dim=1)
+            
+            # Model inference
+            logger.info("LLFlow: Model çalıştırılıyor...")
+            device = next(model.netG.parameters()).device
+            
+            lr_t = lr_t.to(device)
+            
+            if torch.cuda.is_available() and device.type == 'cuda':
+                with torch.cuda.amp.autocast():
+                    sr_t = model.get_sr(lq=lr_t, heat=None)
+            else:
+                with torch.no_grad():
+                    sr_t = model.get_sr(lq=lr_t, heat=None)
+            
+            # Padding'i kaldır ve RGB'ye çevir (test_unpaired.py'deki rgb kullan)
+            sr = llflow_test.rgb(torch.clamp(sr_t, 0, 1)[:, :, padding_params[0]:sr_t.shape[2] - padding_params[1],
+                         padding_params[2]:sr_t.shape[3] - padding_params[3]])
+            
+            # Orijinal boyut kontrolü
+            assert raw_shape == sr.shape, f"Boyut uyuşmazlığı: {raw_shape} != {sr.shape}"
+            
+            # Sonucu kaydet (test_unpaired.py'deki imwrite kullan)
+            logger.info(f"LLFlow: Sonuç kaydediliyor: {output_path}")
+            llflow_test.imwrite(str(output_path), sr)
+            
+            # Çıktıyı oku
+            output_bytes = output_path.read_bytes()
+            
+            return output_bytes
+
+        except Exception as exc:
+            logger.exception("LLFlow predict başarısız")
+            raise ValueError(f"LLFlow predict başarısız: {exc}") from exc
+        finally:
+            # Temizlik
+            try:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            except Exception:
+                pass
 
