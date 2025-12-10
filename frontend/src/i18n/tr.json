@@ -219,7 +219,8 @@
         "models": {
             "enlightengan": "EnlightenGAN",
             "zero_dce": "Zero-DCE",
-            "llflow": "LLFlow"
+            "llflow": "LLFlow",
+            "mirnet_v2": "MIRNet-v2"
         }
     },
     "results": {

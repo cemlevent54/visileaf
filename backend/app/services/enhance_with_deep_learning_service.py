@@ -32,6 +32,7 @@ class EnhanceWithDeepLearningService:
             "enlightengan": self._run_enlightengan,
             "zero_dce": self._run_zero_dce,
             "llflow": self._run_llflow,
+            "mirnet_v2": self._run_mirnet_v2,
         }
 
     def enhance_with_model(self, *, image_bytes: bytes, model_name: str, original_filename: str) -> bytes:
@@ -182,10 +183,89 @@ class EnhanceWithDeepLearningService:
         if root_str not in sys.path:
             sys.path.insert(0, root_str)
 
-        from data.data_loader import CreateDataLoader
-        from models.models import create_model
-        from util import html
-        from util.visualizer import Visualizer
+        # Import modülleri - relative import sorunlarını çözmek için paket olarak yükle
+        import importlib
+        import importlib.util
+        import types
+        
+        # util paketini oluştur (visualizer ve single_model'ın import'ları için gerekli)
+        if 'util' not in sys.modules:
+            util_pkg = types.ModuleType('util')
+            util_pkg.__path__ = [str(root / "util")]
+            util_pkg.__package__ = 'util'
+            sys.modules['util'] = util_pkg
+        
+        # util.util modülünü yükle (single_model.py'nin ihtiyacı)
+        util_util_path = root / "util" / "util.py"
+        if util_util_path.exists():
+            spec = importlib.util.spec_from_file_location("util.util", util_util_path)
+            util_util_module = importlib.util.module_from_spec(spec)
+            util_util_module.__package__ = 'util'
+            util_util_module.__name__ = 'util.util'
+            spec.loader.exec_module(util_util_module)
+            sys.modules['util'].util = util_util_module
+            sys.modules['util.util'] = util_util_module
+        
+        # util.html modülünü yükle
+        html_path = root / "util" / "html.py"
+        if html_path.exists():
+            spec = importlib.util.spec_from_file_location("util.html", html_path)
+            html_module = importlib.util.module_from_spec(spec)
+            html_module.__package__ = 'util'
+            html_module.__name__ = 'util.html'
+            spec.loader.exec_module(html_module)
+            sys.modules['util'].html = html_module
+            sys.modules['util.html'] = html_module
+            html = html_module
+        
+        # util.visualizer modülünü yükle (util paketi hazır olduğunda)
+        visualizer_path = root / "util" / "visualizer.py"
+        if visualizer_path.exists():
+            spec = importlib.util.spec_from_file_location("util.visualizer", visualizer_path)
+            visualizer_module = importlib.util.module_from_spec(spec)
+            # Relative import'lar için __package__ attribute'unu ayarla
+            visualizer_module.__package__ = 'util'
+            visualizer_module.__name__ = 'util.visualizer'
+            spec.loader.exec_module(visualizer_module)
+            sys.modules['util'].visualizer = visualizer_module
+            sys.modules['util.visualizer'] = visualizer_module
+            Visualizer = visualizer_module.Visualizer
+        
+        # models paketini oluştur (single_model.py'nin import'ları için)
+        if 'models' not in sys.modules:
+            models_pkg = types.ModuleType('models')
+            models_pkg.__path__ = [str(root / "models")]
+            models_pkg.__package__ = 'models'
+            sys.modules['models'] = models_pkg
+        
+        # models.models modülünü yükle
+        models_path = root / "models" / "models.py"
+        spec = importlib.util.spec_from_file_location("models.models", models_path)
+        models_models_module = importlib.util.module_from_spec(spec)
+        models_models_module.__package__ = 'models'
+        models_models_module.__name__ = 'models.models'
+        spec.loader.exec_module(models_models_module)
+        sys.modules['models'].models = models_models_module
+        sys.modules['models.models'] = models_models_module
+        create_model = models_models_module.create_model
+        
+        # data paketini oluştur
+        if 'data' not in sys.modules:
+            data_pkg = types.ModuleType('data')
+            data_pkg.__path__ = [str(root / "data")]
+            data_pkg.__package__ = 'data'
+            sys.modules['data'] = data_pkg
+        
+        # data.data_loader modülünü yükle
+        data_loader_path = root / "data" / "data_loader.py"
+        spec = importlib.util.spec_from_file_location("data.data_loader", data_loader_path)
+        data_loader_module = importlib.util.module_from_spec(spec)
+        data_loader_module.__package__ = 'data'
+        data_loader_module.__name__ = 'data.data_loader'
+        spec.loader.exec_module(data_loader_module)
+        sys.modules['data'].data_loader = data_loader_module
+        sys.modules['data.data_loader'] = data_loader_module
+        CreateDataLoader = data_loader_module.CreateDataLoader
 
         opt = self._enlightengan_build_options(root)
 
@@ -772,6 +852,137 @@ class EnhanceWithDeepLearningService:
         except Exception as exc:
             logger.exception("LLFlow predict başarısız")
             raise ValueError(f"LLFlow predict başarısız: {exc}") from exc
+        finally:
+            # Temizlik
+            try:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+            except Exception:
+                pass
+
+    # ----------------------
+    # MIRNetv2 helpers
+    # ----------------------
+    def _get_mirnet_v2_root(self) -> Path:
+        """
+        MIRNetv2 kök klasörü (backend/app/helpers/MIRNetv2).
+        """
+        return Path(__file__).parent.parent / "helpers" / "MIRNetv2"
+
+    def _mirnet_v2_sync_weights(self, root: Path) -> Path:
+        """
+        weight_and_models içindeki hazır ağırlıkları beklenen konuma kopyalar.
+        - Model: MIRNetv2/enhancement_lol.pth (veya benzeri)
+        
+        Returns:
+            Model ağırlık dosyasının yolu
+        """
+        # Önce MIRNetv2 (tire olmadan) dene, sonra MIRNetv2 (tire ile)
+        weights_src_dir_v1 = Path(__file__).parent.parent / "weight_and_models" / "MIRNetv2"
+        weights_src_dir_v2 = Path(__file__).parent.parent / "weight_and_models" / "MIRNetv2"
+        
+        if weights_src_dir_v1.exists():
+            weights_src_dir = weights_src_dir_v1
+        elif weights_src_dir_v2.exists():
+            weights_src_dir = weights_src_dir_v2
+        else:
+            raise ValueError(f"MIRNetv2 model ağırlığı bulunamadı. Kontrol edilen klasörler: {weights_src_dir_v1}, {weights_src_dir_v2}")
+        
+        # Model dosyasını bul (.pth uzantılı)
+        model_files = list(weights_src_dir.glob("*.pth"))
+        if not model_files:
+            raise ValueError(f"MIRNetv2 model ağırlığı bulunamadı: {weights_src_dir}")
+        
+        # İlk .pth dosyasını kullan (veya en son olanı)
+        model_src = max(model_files, key=lambda p: p.stat().st_mtime)
+        
+        # MIRNetv2 root klasörüne kopyala
+        root.mkdir(parents=True, exist_ok=True)
+        
+        model_dst = root / model_src.name
+        if not model_dst.exists():
+            shutil.copy(model_src, model_dst)
+            logger.info("MIRNetv2 ağırlığı kopyalandı: %s", model_dst)
+        else:
+            logger.info("MIRNetv2 ağırlığı zaten mevcut: %s", model_dst)
+        
+        return model_dst
+
+    def _run_mirnet_v2(self, image_bytes: bytes, original_filename: str) -> bytes:
+        """
+        MIRNetv2 test/inference çalıştırır, çıktı bytes döner.
+        independent_test.py'deki fonksiyonları kullanır.
+        """
+        root = self._get_mirnet_v2_root()
+        # Klasör yoksa oluştur
+        root.mkdir(parents=True, exist_ok=True)
+
+        # Geçici dosyalar için klasör oluştur
+        suffix = Path(original_filename).suffix or ".jpg"
+        tmp_dir = Path(tempfile.mkdtemp(prefix="mirnet_v2_", dir=root))
+        input_path = tmp_dir / f"input{suffix}"
+        output_path = tmp_dir / "output.jpg"
+        
+        # Input görseli kaydet
+        input_path.write_bytes(image_bytes)
+
+        try:
+            # Ağırlıkları senkronize et
+            model_path = self._mirnet_v2_sync_weights(root)
+
+            # independent_test.py'yi modül olarak import et
+            # Script'in bulunduğu klasörü path'e ekle
+            script_dir = root / "code"
+            script_dir.mkdir(parents=True, exist_ok=True)
+            script_dir_str = str(script_dir)
+            if script_dir_str not in sys.path:
+                sys.path.insert(0, script_dir_str)
+            
+            # basicsr klasörünü path'e ekle (MIRNetv2/basicsr veya MIRNetv2/code/basicsr)
+            basicsr_dir = root / "basicsr"
+            if not basicsr_dir.exists():
+                basicsr_dir = root / "code" / "basicsr"
+            if basicsr_dir.exists():
+                basicsr_dir_str = str(basicsr_dir.parent)  # basicsr'ın parent'ını ekle (basicsr modülü olarak import edilebilmesi için)
+                if basicsr_dir_str not in sys.path:
+                    sys.path.insert(0, basicsr_dir_str)
+                logger.info(f"MIRNetv2: basicsr path eklendi: {basicsr_dir_str}")
+
+            # independent_test.py'yi import et
+            try:
+                import independent_test as mirnet_test
+            except ImportError as e:
+                raise ValueError(f"MIRNetv2 independent_test.py import edilemedi: {e}. "
+                               f"Script'in {script_dir} klasöründe olduğundan emin olun. "
+                               f"basicsr klasörünün {basicsr_dir} konumunda olduğundan emin olun.")
+
+            # YAML dosyası bul (varsa)
+            yaml_file = root / "code" / "Enhancement" / "Options" / "Enhancement_MIRNet_v2_Lol.yml"
+            yaml_path = str(yaml_file) if yaml_file.exists() else None
+
+            # enhance_image fonksiyonunu çağır
+            logger.info(f"MIRNetv2: Model yükleniyor: {model_path}")
+            logger.info(f"MIRNetv2: Görüntü işleniyor: {input_path}")
+            
+            mirnet_test.enhance_image(
+                input_image_path=str(input_path),
+                model_path=str(model_path),
+                output_image_path=str(output_path),
+                yaml_file=yaml_path,
+                tile_size=None,  # Orijinal çözünürlükte işle
+                tile_overlap=32
+            )
+            
+            # Çıktıyı oku
+            if not output_path.exists():
+                raise ValueError(f"MIRNetv2 çıktı dosyası oluşturulamadı: {output_path}")
+            
+            output_bytes = output_path.read_bytes()
+            
+            return output_bytes
+
+        except Exception as exc:
+            logger.exception("MIRNetv2 predict başarısız")
+            raise ValueError(f"MIRNetv2 predict başarısız: {exc}") from exc
         finally:
             # Temizlik
             try:

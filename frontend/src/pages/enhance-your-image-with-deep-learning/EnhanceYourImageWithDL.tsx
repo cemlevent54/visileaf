@@ -14,6 +14,7 @@ function EnhanceYourImageWithDL() {
     { value: 'enlightengan', label: t('enhanceDL.models.enlightengan') },
     { value: 'zero_dce', label: t('enhanceDL.models.zero_dce') },
     { value: 'llflow', label: t('enhanceDL.models.llflow') },
+    { value: 'mirnet_v2', label: t('enhanceDL.models.mirnet_v2') },
   ], [t])
   const fileInputRef = useRef<HTMLInputElement>(null)
 

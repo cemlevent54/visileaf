@@ -1,0 +1,3 @@
+*.pth
+*.png
+/basicsr/data/meta_info/

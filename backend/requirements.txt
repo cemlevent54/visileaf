@@ -45,3 +45,11 @@ visdom>=0.2.4
 # Deep Learning - LLFlow dependencies
 natsort>=8.4.0
 pyyaml>=6.0.1
+lpips>=0.1.4
+
+# Deep Learning - MIRNet-v2 dependencies
+# basicsr paketi GitHub'dan kurulmalı (PyPI'da Python 3.13 uyumluluk sorunu var)
+# Kurulum için: pip install git+https://github.com/xinntao/BasicSR.git
+# Not: requirements.txt'de direkt GitHub URL'i desteklenmeyebilir, manuel kurulum gerekebilir
+scikit-image>=0.21.0
+lmdb>=1.4.1
