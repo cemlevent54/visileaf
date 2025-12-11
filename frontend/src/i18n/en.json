@@ -240,7 +240,7 @@
             "showImages": "Show input/output images",
             "showParams": "Show parameters",
             "showAll": "Show everything",
-            "export": "Export (Detail - coming soon)",
+            "export": "Export",
             "viewInputImage": "View input image",
             "viewOutputImage": "View output image"
         },

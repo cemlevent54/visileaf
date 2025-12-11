@@ -106,6 +106,128 @@ class EnhanceWithDeepLearningService:
         """
         predict inline akışı için TestOptions kurar (predict.py ile aynı argümanlar).
         """
+        # EnlightenGAN klasörünü Python path'ine ekle (options modülü için gerekli)
+        root_str = str(root)
+        if root_str not in sys.path:
+            sys.path.insert(0, root_str)
+        
+        # options modülünün import edilebilmesi için path'i doğrula
+        options_path = root / "options"
+        if not options_path.exists():
+            raise ValueError(f"EnlightenGAN options klasörü bulunamadı: {options_path}")
+        
+        # options paketini ve modüllerini dinamik olarak yükle
+        try:
+            import importlib
+            import importlib.util
+            
+            # util modülünü önce yükle (base_options için gerekli)
+            util_path = root / "util"
+            if util_path.exists():
+                util_init_spec = importlib.util.spec_from_file_location(
+                    "util",
+                    str(util_path / "__init__.py")
+                )
+                if util_init_spec and util_init_spec.loader:
+                    util_pkg = importlib.util.module_from_spec(util_init_spec)
+                    sys.modules['util'] = util_pkg
+                    util_init_spec.loader.exec_module(util_pkg)
+                
+                # util.util modülünü yükle
+                util_util_spec = importlib.util.spec_from_file_location(
+                    "util.util",
+                    str(util_path / "util.py")
+                )
+                if util_util_spec and util_util_spec.loader:
+                    util_util_module = importlib.util.module_from_spec(util_util_spec)
+                    sys.modules['util.util'] = util_util_module
+                    util_util_module.__package__ = 'util'
+                    # util paketini util.util modülüne ekle
+                    if 'util' in sys.modules:
+                        util_util_module.util = sys.modules['util']
+                    util_util_spec.loader.exec_module(util_util_module)
+            
+            # options paketini yükle
+            options_pkg_spec = importlib.util.spec_from_file_location(
+                "options",
+                str(options_path / "__init__.py")
+            )
+            if options_pkg_spec and options_pkg_spec.loader:
+                options_pkg = importlib.util.module_from_spec(options_pkg_spec)
+                sys.modules['options'] = options_pkg
+                options_pkg_spec.loader.exec_module(options_pkg)
+            
+            # base_options modülünü yükle (test_options için gerekli)
+            base_options_spec = importlib.util.spec_from_file_location(
+                "options.base_options",
+                str(options_path / "base_options.py")
+            )
+            if base_options_spec and base_options_spec.loader:
+                base_options_module = importlib.util.module_from_spec(base_options_spec)
+                sys.modules['options.base_options'] = base_options_module
+                # options paketini base_options'un parent'ı olarak ayarla
+                base_options_module.__package__ = 'options'
+                base_options_spec.loader.exec_module(base_options_module)
+            
+            # test_options modülünü yükle
+            test_options_spec = importlib.util.spec_from_file_location(
+                "options.test_options",
+                str(options_path / "test_options.py")
+            )
+            if test_options_spec and test_options_spec.loader:
+                test_options_module = importlib.util.module_from_spec(test_options_spec)
+                sys.modules['options.test_options'] = test_options_module
+                # options paketini test_options'un parent'ı olarak ayarla
+                test_options_module.__package__ = 'options'
+                # base_options'u test_options modülüne ekle (relative import için)
+                test_options_module.base_options = sys.modules['options.base_options']
+                test_options_spec.loader.exec_module(test_options_module)
+            
+            # TestOptions sınıfını al
+            TestOptions = getattr(test_options_module, 'TestOptions')
+            
+            # models modülünü yükle (create_model için gerekli)
+            models_path = root / "models"
+            if models_path.exists():
+                models_init_spec = importlib.util.spec_from_file_location(
+                    "models",
+                    str(models_path / "__init__.py")
+                )
+                if models_init_spec and models_init_spec.loader:
+                    models_pkg = importlib.util.module_from_spec(models_init_spec)
+                    sys.modules['models'] = models_pkg
+                    models_pkg.__package__ = 'models'
+                    models_init_spec.loader.exec_module(models_pkg)
+                
+                # models.models modülünü yükle (create_model fonksiyonu için)
+                models_models_spec = importlib.util.spec_from_file_location(
+                    "models.models",
+                    str(models_path / "models.py")
+                )
+                if models_models_spec and models_models_spec.loader:
+                    models_models_module = importlib.util.module_from_spec(models_models_spec)
+                    sys.modules['models.models'] = models_models_module
+                    models_models_module.__package__ = 'models'
+                    models_models_spec.loader.exec_module(models_models_module)
+                
+                # single_model modülünü yükle (models.models için gerekli)
+                single_model_spec = importlib.util.spec_from_file_location(
+                    "models.single_model",
+                    str(models_path / "single_model.py")
+                )
+                if single_model_spec and single_model_spec.loader:
+                    single_model_module = importlib.util.module_from_spec(single_model_spec)
+                    sys.modules['models.single_model'] = single_model_module
+                    single_model_module.__package__ = 'models'
+                    single_model_spec.loader.exec_module(single_model_module)
+            
+        except Exception as e:
+            # Daha detaylı hata mesajı için
+            import traceback
+            error_details = traceback.format_exc()
+            logger.error(f"EnlightenGAN import hatası detayları:\n{error_details}")
+            raise ValueError(f"EnlightenGAN options.test_options import edilemedi: {e}")
+        
         argv = [
             "predict_inline",
             "--dataroot",
@@ -148,8 +270,6 @@ class EnhanceWithDeepLearningService:
         orig_argv = sys.argv
         sys.argv = argv
         try:
-            from options.test_options import TestOptions
-
             opt = TestOptions().parse()
         finally:
             sys.argv = orig_argv
@@ -237,6 +357,16 @@ class EnhanceWithDeepLearningService:
             models_pkg.__path__ = [str(root / "models")]
             models_pkg.__package__ = 'models'
             sys.modules['models'] = models_pkg
+        
+        # single_model modülünü önce yükle (models.models için gerekli)
+        single_model_path = root / "models" / "single_model.py"
+        if single_model_path.exists():
+            single_model_spec = importlib.util.spec_from_file_location("models.single_model", single_model_path)
+            if single_model_spec and single_model_spec.loader:
+                single_model_module = importlib.util.module_from_spec(single_model_spec)
+                single_model_module.__package__ = 'models'
+                sys.modules['models.single_model'] = single_model_module
+                single_model_spec.loader.exec_module(single_model_module)
         
         # models.models modülünü yükle
         models_path = root / "models" / "models.py"
@@ -730,16 +860,138 @@ class EnhanceWithDeepLearningService:
         if not root.exists():
             raise ValueError(f"LLFlow kökü bulunamadı: {root}")
 
-        # code klasörünü path'e ekle
+        # code klasörünü path'e ekle (test_unpaired.py içindeki import'lar için gerekli)
         code_dir = root / "code"
         code_dir_str = str(code_dir)
         if code_dir_str not in sys.path:
             sys.path.insert(0, code_dir_str)
-
+        
+        # options modülünün import edilebilmesi için path'i doğrula
+        options_path = code_dir / "options"
+        if not options_path.exists():
+            raise ValueError(f"LLFlow options klasörü bulunamadı: {options_path}")
+        
         # test_unpaired.py'deki fonksiyonları import et
+        # Import sırasında options.options, models, utils modülleri bulunabilmeli
         try:
+            import importlib
+            import importlib.util
+            
+            # utils modülünü önce yükle (test_unpaired.py ve models için gerekli)
+            utils_path = code_dir / "utils"
+            if utils_path.exists():
+                utils_init_spec = importlib.util.spec_from_file_location(
+                    "utils",
+                    str(utils_path / "__init__.py")
+                )
+                if utils_init_spec and utils_init_spec.loader:
+                    utils_pkg = importlib.util.module_from_spec(utils_init_spec)
+                    sys.modules['utils'] = utils_pkg
+                    utils_init_spec.loader.exec_module(utils_pkg)
+                
+                # utils.util modülünü yükle
+                utils_util_spec = importlib.util.spec_from_file_location(
+                    "utils.util",
+                    str(utils_path / "util.py")
+                )
+                if utils_util_spec and utils_util_spec.loader:
+                    utils_util_module = importlib.util.module_from_spec(utils_util_spec)
+                    sys.modules['utils.util'] = utils_util_module
+                    utils_util_module.__package__ = 'utils'
+                    if 'utils' in sys.modules:
+                        utils_util_module.utils = sys.modules['utils']
+                    utils_util_spec.loader.exec_module(utils_util_module)
+            
+            # models modülünü yükle (test_unpaired.py için gerekli)
+            models_path = code_dir / "models"
+            if models_path.exists():
+                models_init_spec = importlib.util.spec_from_file_location(
+                    "models",
+                    str(models_path / "__init__.py")
+                )
+                if models_init_spec and models_init_spec.loader:
+                    models_module = importlib.util.module_from_spec(models_init_spec)
+                    sys.modules['models'] = models_module
+                    models_module.__package__ = 'models'
+                    models_init_spec.loader.exec_module(models_module)
+                
+                # base_model modülünü yükle (LLFlow_model için gerekli)
+                base_model_spec = importlib.util.spec_from_file_location(
+                    "models.base_model",
+                    str(models_path / "base_model.py")
+                )
+                if base_model_spec and base_model_spec.loader:
+                    base_model_module = importlib.util.module_from_spec(base_model_spec)
+                    sys.modules['models.base_model'] = base_model_module
+                    base_model_module.__package__ = 'models'
+                    base_model_spec.loader.exec_module(base_model_module)
+                
+                # networks modülünü yükle (LLFlow_model için gerekli)
+                networks_spec = importlib.util.spec_from_file_location(
+                    "models.networks",
+                    str(models_path / "networks.py")
+                )
+                if networks_spec and networks_spec.loader:
+                    networks_module = importlib.util.module_from_spec(networks_spec)
+                    sys.modules['models.networks'] = networks_module
+                    networks_module.__package__ = 'models'
+                    networks_spec.loader.exec_module(networks_module)
+                
+                # lr_scheduler modülünü yükle (LLFlow_model için gerekli)
+                lr_scheduler_spec = importlib.util.spec_from_file_location(
+                    "models.lr_scheduler",
+                    str(models_path / "lr_scheduler.py")
+                )
+                if lr_scheduler_spec and lr_scheduler_spec.loader:
+                    lr_scheduler_module = importlib.util.module_from_spec(lr_scheduler_spec)
+                    sys.modules['models.lr_scheduler'] = lr_scheduler_module
+                    lr_scheduler_module.__package__ = 'models'
+                    lr_scheduler_spec.loader.exec_module(lr_scheduler_module)
+                
+                # LLFlow_model modülünü yükle (create_model için gerekli)
+                llflow_model_spec = importlib.util.spec_from_file_location(
+                    "models.LLFlow_model",
+                    str(models_path / "LLFlow_model.py")
+                )
+                if llflow_model_spec and llflow_model_spec.loader:
+                    llflow_model_module = importlib.util.module_from_spec(llflow_model_spec)
+                    sys.modules['models.LLFlow_model'] = llflow_model_module
+                    llflow_model_module.__package__ = 'models'
+                    llflow_model_spec.loader.exec_module(llflow_model_module)
+            
+            # options paketini yükle
+            options_pkg_spec = importlib.util.spec_from_file_location(
+                "options",
+                str(options_path / "__init__.py")
+            )
+            if options_pkg_spec and options_pkg_spec.loader:
+                options_pkg = importlib.util.module_from_spec(options_pkg_spec)
+                sys.modules['options'] = options_pkg
+                options_pkg_spec.loader.exec_module(options_pkg)
+            
+            # Şimdi options.options modülünü import et
+            options_options_spec = importlib.util.spec_from_file_location(
+                "options.options",
+                str(options_path / "options.py")
+            )
+            if options_options_spec and options_options_spec.loader:
+                options_options_module = importlib.util.module_from_spec(options_options_spec)
+                sys.modules['options.options'] = options_options_module
+                options_options_spec.loader.exec_module(options_options_module)
+            
+            # Şimdi test_unpaired.py'yi import et
             import test_unpaired as llflow_test
         except ImportError as e:
+            # Daha detaylı hata mesajı için
+            import traceback
+            error_details = traceback.format_exc()
+            logger.error(f"LLFlow import hatası detayları:\n{error_details}")
+            raise ValueError(f"LLFlow test_unpaired.py import edilemedi: {e}")
+        except Exception as e:
+            # Diğer hatalar için
+            import traceback
+            error_details = traceback.format_exc()
+            logger.error(f"LLFlow import hatası detayları:\n{error_details}")
             raise ValueError(f"LLFlow test_unpaired.py import edilemedi: {e}")
 
         # Geçici dosyalar için klasör oluştur

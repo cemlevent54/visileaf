@@ -240,7 +240,7 @@
             "showImages": "Giriş/Çıkış Görüntüleri",
             "showParams": "Parametreleri Göster",
             "showAll": "Hepsini Göster",
-            "export": "Dışa Aktar (Mock)",
+            "export": "Dışa Aktar",
             "viewInputImage": "Giriş resmini görüntüle",
             "viewOutputImage": "Çıkış resmini görüntüle"
         },

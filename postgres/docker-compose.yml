@@ -1,0 +1,20 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:15
+    container_name: postgres-db
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "${POSTGRES_PORT_HOST:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer
+    restart: always
+    environment:
+      ADMINER_DEFAULT_SERVER: ${ADMINER_DEFAULT_SERVER:-db}
+    ports:
+      - "${POSTGRES_ADMIN_PORT:-8090}:8080"
