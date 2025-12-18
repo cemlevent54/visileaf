@@ -234,23 +234,33 @@
             "input": "Input",
             "output": "Output",
             "params": "Parameters",
-            "actions": "Actions"
+            "actions": "Actions",
+            "delete": "Delete"
         },
         "actions": {
-            "showImages": "Show input/output images",
-            "showParams": "Show parameters",
-            "showAll": "Show everything",
+            "showImages": "Results",
+            "showParams": "Parameters",
+            "showAll": "Details",
             "export": "Export",
             "viewInputImage": "View input image",
-            "viewOutputImage": "View output image"
+            "viewOutputImage": "View output image",
+            "delete": "Delete"
         },
         "modal": {
             "imagesTitle": "Input / Output Images",
             "paramsTitle": "Parameters",
             "allTitle": "Details",
+            "deleteTitle": "Delete result",
             "input": "Input",
             "output": "Output",
             "params": "Parameters"
+        },
+        "delete": {
+            "confirm": "Are you sure you want to delete this result? This action cannot be undone.",
+            "cancel": "Cancel",
+            "confirmYes": "Yes, delete",
+            "success": "Result deleted successfully",
+            "error": "Failed to delete result"
         },
         "noParams": "No parameters"
     }

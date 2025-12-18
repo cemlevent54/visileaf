@@ -77,8 +77,11 @@ This repository includes:
 1. Navigate to the `colab_training_files` directory
 2. Select the folder corresponding to the model you wish to train
 3. Download the corresponding `.ipynb` (Jupyter Notebook) file
-4. Download the `dataset.zip` file provided
-5. Unzip the `dataset` archive
+4. Download the `visileaf_dataset_and_pretrained_models.zip` file provided
+```url
+https://mega.nz/file/b8Q1RSiL#VD8W8-whZf4XZtuRTfoYFH1ykWGNl9Ch3KKjJnyqf7o
+```
+5. Unzip the `visileaf_dataset_and_pretrained_models` archive
 6. Upload the `.ipynb` file to your Google Colab environment
 7. Upload the unzipped `dataset` folder to your Google Drive
 8. Follow the instructions in the notebook to:
@@ -170,7 +173,15 @@ REFRESH_TOKEN_EXPIRE_DAYS=
 RESEND_API_KEY=
 ```
 
-**8. Run the Backend**
+**8. Move the `weight_and_models` folder to the backend directory**
+
+- Go to the `visileaf_dataset_and_pretrained_models` archive
+- Copy the `weight_and_models` folder
+- Move it to the `backend/app/weight_and_models` directory
+
+
+
+**9. Run the Backend**
 
 ```bash
 cd backend
@@ -180,7 +191,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-**9. Configure Frontend Environment Variables**
+**10. Configure Frontend Environment Variables**
 
 Create a `.env` file in the frontend directory and add:
 
@@ -188,7 +199,7 @@ Create a `.env` file in the frontend directory and add:
 VITE_API_URL=http://localhost:8000
 ```
 
-**10. Run the Frontend**
+**11. Run the Frontend**
 
 ```bash
 cd frontend
@@ -196,16 +207,16 @@ npm install
 npm run dev
 ```
 
-**11. Access the Web Application**
+**12. Access the Web Application**
 
 Open your browser and navigate to: [http://localhost:3000](http://localhost:3000)
 
-**12. Register a New Account**
+**13. Register a New Account**
 
 To test the web application, first register a new account at:
 [http://localhost:3000/register](http://localhost:3000/register)
 
-**13. Test Image Enhancement Features**
+**14. Test Image Enhancement Features**
 
 You can test and view image enhancement results using the following pages:
 

@@ -15,6 +15,7 @@ from app.schemas.enhancement import EnhancementParams
 from app.config import get_logger, get_session
 from pydantic import ValidationError
 from sqlmodel import Session
+from datetime import datetime
 
 router = APIRouter(prefix="/api/enhancement", tags=["enhancement"])
 logger = get_logger(__name__)
@@ -540,4 +541,101 @@ async def toggle_star_result(
     except Exception as e:
         logger.exception(f"Failed to toggle star: {e}")
         raise HTTPException(status_code=500, detail="Failed to toggle star")
+
+
+@router.delete("/results/{image_id}")
+async def delete_enhancement_result(
+    image_id: str,
+    authorization: str = Header(..., alias="Authorization"),
+    session: Session = Depends(get_session),
+):
+    """
+    Hard delete an enhancement result (output image) and its files.
+
+    - **image_id**: Output image UUID (the enhancement result to delete)
+    """
+    try:
+        from uuid import UUID
+
+        auth_service = AuthService(session)
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=401,
+                detail="Authorization header with Bearer token is required",
+            )
+        access_token = authorization.replace("Bearer ", "")
+        current_user = auth_service.get_current_user(access_token)
+        user_id = current_user["user"]["id"]
+
+        try:
+            image_uuid = UUID(image_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid image ID format")
+
+        image_service = ImageService(session)
+        result = image_service.delete_result(image_id=image_uuid, user_id=user_id)
+        return result
+    except ValueError as e:
+        error_msg = str(e)
+        logger.error(f"Delete result error: {error_msg}")
+        raise HTTPException(status_code=400, detail=error_msg)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Failed to delete enhancement result: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete enhancement result")
+
+
+@router.post("/export/results/{image_id}")
+async def export_enhancement_result(
+    image_id: str,
+    authorization: str = Header(..., alias="Authorization"),
+    session: Session = Depends(get_session),
+):
+    """
+    Export a single enhancement result as a PDF (input/output images + parameters).
+
+    - **image_id**: Output image UUID (the enhancement result to export)
+    """
+    try:
+        from uuid import UUID
+
+        auth_service = AuthService(session)
+        if not authorization or not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=401,
+                detail="Authorization header with Bearer token is required",
+            )
+        access_token = authorization.replace("Bearer ", "")
+        current_user = auth_service.get_current_user(access_token)
+        user_id = current_user["user"]["id"]
+
+        try:
+            image_uuid = UUID(image_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid image ID format")
+
+        image_service = ImageService(session)
+        pdf_bytes = image_service.export_result_pdf(image_uuid, user_id=user_id)
+
+        # Timestamp-based filename: yyyy_mm_dd_hh_mm_ss.pdf
+        ts = datetime.utcnow().strftime("%Y_%m_%d_%H_%M_%S")
+        filename = f"{ts}.pdf"
+
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            },
+        )
+    except ValueError as e:
+        error_msg = str(e)
+        logger.error(f"Export result error: {error_msg}")
+        raise HTTPException(status_code=400, detail=error_msg)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Failed to export enhancement result: {e}")
+        raise HTTPException(status_code=500, detail="Failed to export enhancement result")
 

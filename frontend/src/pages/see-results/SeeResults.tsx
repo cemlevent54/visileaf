@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Navbar from '../../components/navbar/Navbar'
+import Snackbar from '../../components/snackbar/Snackbar'
 import { useTranslation } from '../../hooks/useTranslation'
 import enhancementService from '../../services/enhancement.service'
 import { getApiUrl } from '../../services/api.interceptor'
@@ -32,7 +33,17 @@ function SeeResults() {
   const [error, setError] = useState<string | null>(null)
 
   const [selectedResult, setSelectedResult] = useState<EnhancementResult | null>(null)
-  const [modalType, setModalType] = useState<'images' | 'params' | 'all' | null>(null)
+  const [modalType, setModalType] = useState<'images' | 'params' | 'all' | 'delete' | null>(null)
+
+  const [snackbar, setSnackbar] = useState<{
+    isOpen: boolean
+    message: string
+    type: 'success' | 'error' | 'info' | 'warning'
+  }>({
+    isOpen: false,
+    message: '',
+    type: 'info',
+  })
 
   const apiBaseUrl = getApiUrl()
 
@@ -161,12 +172,12 @@ function SeeResults() {
     fetchResults()
   }, [])
 
-  const handleActionClick = (result: EnhancementResult, type: 'images' | 'params' | 'all' | 'export') => {
+  const handleActionClick = (
+    result: EnhancementResult,
+    type: 'images' | 'params' | 'all' | 'export',
+  ) => {
     if (type === 'export') {
-      // Şimdilik mock: sadece console.log yap
-      // İleride gerçek export (JSON / CSV / ZIP) için buraya gelecek
-      // eslint-disable-next-line no-console
-      console.log('Export clicked for result', result)
+      void handleExport(result)
       return
     }
     setSelectedResult(result)
@@ -176,6 +187,76 @@ function SeeResults() {
   const closeModal = () => {
     setSelectedResult(null)
     setModalType(null)
+  }
+
+  const handleDeleteClick = (result: EnhancementResult) => {
+    setSelectedResult(result)
+    setModalType('delete')
+  }
+
+  const handleExport = async (result: EnhancementResult) => {
+    try {
+      const blob = await enhancementService.exportResult(result.id)
+
+      const now = new Date()
+      const pad = (n: number) => n.toString().padStart(2, '0')
+      const filename = `${now.getFullYear()}_${pad(now.getMonth() + 1)}_${pad(
+        now.getDate(),
+      )}_${pad(now.getHours())}_${pad(now.getMinutes())}_${pad(now.getSeconds())}.pdf`
+
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (e: any) {
+      const errorMessage = e?.message || 'Failed to export result'
+      setSnackbar({
+        isOpen: true,
+        message: errorMessage,
+        type: 'error',
+      })
+    }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!selectedResult) return
+    // Optimistic update: remove from UI immediately
+    const toDeleteId = selectedResult.id
+    setResults((prev) => prev.filter((r) => r.id !== toDeleteId))
+    closeModal()
+
+    try {
+      setError(null)
+      await enhancementService.deleteResult(toDeleteId)
+
+      // Success snackbar
+      setSnackbar({
+        isOpen: true,
+        message: t('results.delete.success') || 'Result deleted successfully',
+        type: 'success',
+      })
+    } catch (e: any) {
+      const errorMessage = e?.message || t('results.delete.error') || 'Failed to delete result'
+      setError(errorMessage)
+
+      // Revert optimistic update by reloading list
+      try {
+        const data = await enhancementService.listResults()
+        setResults(sortResults(data))
+      } catch {
+        // ignore secondary error, error state already set
+      }
+
+      setSnackbar({
+        isOpen: true,
+        message: errorMessage,
+        type: 'error',
+      })
+    }
   }
 
   const handleToggleStar = async (result: EnhancementResult) => {
@@ -216,6 +297,9 @@ function SeeResults() {
                   <th>{t('results.table.output') || 'Output'}</th>
                   <th>{t('results.table.params') || 'Parameters'}</th>
                   <th>{t('results.table.actions') || 'Actions'}</th>
+                  <th style={{ width: '50px', textAlign: 'center' }}>
+                    {t('results.table.delete') || ''}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -268,7 +352,7 @@ function SeeResults() {
                             className="see-results-action-button"
                             onClick={() => handleActionClick(r, 'images')}
                           >
-                            {t('results.actions.showImages') || 'Show input-output images'}
+                            {t('results.actions.showImages') || 'Show results'}
                           </button>
                           <button
                             type="button"
@@ -293,6 +377,17 @@ function SeeResults() {
                           </button>
                         </div>
                       </td>
+                      <td className="see-results-delete-cell">
+                        <button
+                          type="button"
+                          className="see-results-delete-button"
+                          onClick={() => handleDeleteClick(r)}
+                          aria-label={t('results.actions.delete') || 'Delete result'}
+                          title={t('results.actions.delete') || 'Delete result'}
+                        >
+                          🗑
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}
@@ -303,14 +398,25 @@ function SeeResults() {
 
         {selectedResult && modalType && (
           <div className="see-results-modal-backdrop" onClick={closeModal}>
-            <div className="see-results-modal" onClick={(e) => e.stopPropagation()}>
+            <div
+              className={`see-results-modal ${
+                modalType === 'delete'
+                  ? 'see-results-modal--narrow'
+                  : modalType === 'params' || modalType === 'all'
+                    ? 'see-results-modal--short'
+                    : ''
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="see-results-modal-header">
                 <h2>
                   {modalType === 'images'
-                    ? t('results.modal.imagesTitle') || 'Input / Output Images'
+                    ? (t('results.modal.imagesTitle') || 'Input / Output Images')
                     : modalType === 'params'
-                      ? t('results.modal.paramsTitle') || 'Parameters'
-                      : t('results.modal.allTitle') || 'Details'}
+                      ? (t('results.modal.paramsTitle') || 'Parameters')
+                      : modalType === 'all'
+                        ? (t('results.modal.allTitle') || 'Details')
+                        : (t('results.modal.deleteTitle') || 'Delete result')}
                 </h2>
                 <button type="button" className="see-results-close" onClick={closeModal}>
                   ×
@@ -318,75 +424,111 @@ function SeeResults() {
               </div>
 
               <div className="see-results-modal-content">
-                {(modalType === 'images' || modalType === 'all') && (
-                  <div className="see-results-images-preview">
-                    <div>
-                      <h3>{t('results.modal.input') || 'Input'}</h3>
-                      {(() => {
-                        const inputUrl = buildImageUrl(selectedResult.input?.path)
-                        return inputUrl ? (
-                          <>
-                            <img src={inputUrl} alt="Input" className="see-results-img" />
-                            <button
-                              type="button"
-                              className="see-results-image-button"
-                              onClick={() => window.open(inputUrl, '_blank', 'noopener,noreferrer')}
-                            >
-                              {t('results.actions.viewInputImage') || 'View input image'}
-                            </button>
-                          </>
-                        ) : (
-                          <p>-</p>
-                        )
-                      })()}
-                    </div>
-                    <div>
-                      <h3>{t('results.modal.output') || 'Output'}</h3>
-                      {(() => {
-                        const outputUrl = buildImageUrl(selectedResult.output_path)
-                        return outputUrl ? (
-                          <>
-                            <img src={outputUrl} alt="Output" className="see-results-img" />
-                            <button
-                              type="button"
-                              className="see-results-image-button"
-                              onClick={() => window.open(outputUrl, '_blank', 'noopener,noreferrer')}
-                            >
-                              {t('results.actions.viewOutputImage') || 'View output image'}
-                            </button>
-                          </>
-                        ) : (
-                          <p>-</p>
-                        )
-                      })()}
-                    </div>
-                  </div>
-                )}
-
-                {(modalType === 'params' || modalType === 'all') && (
+                {modalType === 'delete' ? (
                   <div className="see-results-params">
-                    <h3>{t('results.modal.params') || 'Parameters'}</h3>
-                    {Object.keys(selectedResult.params || {}).length === 0 ? (
-                      <p className="see-results-status">
-                        {t('results.noParams') || 'No parameters'}
-                      </p>
-                    ) : (
-                      <ul className="see-results-params-list">
-                        {Object.entries(selectedResult.params).map(([key, value]) => (
-                          <li key={key}>
-                            <strong>{key}:</strong>{' '}
-                            <span>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    <p className="see-results-status">
+                      {t('results.delete.confirm') ||
+                        'Are you sure you want to delete this result? This action cannot be undone.'}
+                    </p>
+                    <div className="see-results-delete-actions">
+                      <button
+                        type="button"
+                        className="see-results-action-button secondary"
+                        onClick={closeModal}
+                      >
+                        {t('results.delete.cancel') || 'Cancel'}
+                      </button>
+                      <button
+                        type="button"
+                        className="see-results-action-button see-results-delete-confirm-button"
+                        onClick={handleConfirmDelete}
+                      >
+                        {t('results.delete.confirmYes') || 'Yes, delete'}
+                      </button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    {(modalType === 'images' || modalType === 'all') && (
+                      <div className="see-results-images-preview">
+                        <div>
+                          <h3>{t('results.modal.input') || 'Input'}</h3>
+                          {(() => {
+                            const inputUrl = buildImageUrl(selectedResult.input?.path)
+                            return inputUrl ? (
+                              <>
+                                <img src={inputUrl} alt="Input" className="see-results-img" />
+                                <button
+                                  type="button"
+                                  className="see-results-image-button"
+                                  onClick={() => window.open(inputUrl, '_blank', 'noopener,noreferrer')}
+                                >
+                                  {t('results.actions.viewInputImage') || 'View input image'}
+                                </button>
+                              </>
+                            ) : (
+                              <p>-</p>
+                            )
+                          })()}
+                        </div>
+                        <div>
+                          <h3>{t('results.modal.output') || 'Output'}</h3>
+                          {(() => {
+                            const outputUrl = buildImageUrl(selectedResult.output_path)
+                            return outputUrl ? (
+                              <>
+                                <img src={outputUrl} alt="Output" className="see-results-img" />
+                                <button
+                                  type="button"
+                                  className="see-results-image-button"
+                                  onClick={() => window.open(outputUrl, '_blank', 'noopener,noreferrer')}
+                                >
+                                  {t('results.actions.viewOutputImage') || 'View output image'}
+                                </button>
+                              </>
+                            ) : (
+                              <p>-</p>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                    )}
+
+                    {(modalType === 'params' || modalType === 'all') && (
+                      <div className="see-results-params">
+                        <h3>{t('results.modal.params') || 'Parameters'}</h3>
+                        {Object.keys(selectedResult.params || {}).length === 0 ? (
+                          <p className="see-results-status">
+                            {t('results.noParams') || 'No parameters'}
+                          </p>
+                        ) : (
+                          <ul className="see-results-params-list">
+                            {Object.entries(selectedResult.params).map(([key, value]) => (
+                              <li key={key}>
+                                <strong>{key}:</strong>{' '}
+                                <span>
+                                  {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
           </div>
         )}
       </main>
+
+      <Snackbar
+        isOpen={snackbar.isOpen}
+        message={snackbar.message}
+        type={snackbar.type}
+        onClose={() => setSnackbar({ ...snackbar, isOpen: false })}
+      />
     </div>
   )
 }

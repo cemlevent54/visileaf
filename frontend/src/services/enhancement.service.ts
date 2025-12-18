@@ -227,6 +227,48 @@ class EnhancementService {
 
         return await response.json()
     }
+
+    /**
+     * Hard delete an enhancement result (and its associated files).
+     */
+    async deleteResult(imageId: string): Promise<void> {
+        const url = `${this.baseUrl}/api/enhancement/results/${imageId}`
+        const headers = getAuthHeadersForFormData()
+
+        const response = await apiRequest(url, {
+            method: 'DELETE',
+            headers,
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            const errorMessage = errorData.detail || errorData.message || 'Failed to delete result'
+            throw new Error(errorMessage)
+        }
+
+        // No body expected; deletion successful if we reach here
+    }
+
+    /**
+     * Export a single enhancement result as PDF (input/output + params).
+     */
+    async exportResult(imageId: string): Promise<Blob> {
+        const url = `${this.baseUrl}/api/enhancement/export/results/${imageId}`
+        const headers = getAuthHeadersForFormData()
+
+        const response = await apiRequest(url, {
+            method: 'POST',
+            headers,
+        })
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}))
+            const errorMessage = errorData.detail || errorData.message || 'Failed to export result'
+            throw new Error(errorMessage)
+        }
+
+        return await response.blob()
+    }
 }
 
 // Export singleton instance

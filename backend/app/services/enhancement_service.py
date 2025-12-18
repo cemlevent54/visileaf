@@ -7,23 +7,17 @@ from typing import Optional
 import cv2
 import numpy as np
 import logging
+from scipy.spatial import distance
+from scipy.ndimage import convolve
+from scipy.sparse import diags, csr_matrix
+from scipy.sparse.linalg import spsolve
 
 logger = logging.getLogger(__name__)
 
 # Python klasörünü path'e ekle (lazy initialization)
 _project_root = None
 _python_dir = None
-_single_scale_retinex = None
-_multi_scale_retinex = None
-_retinex_import_error = None
 
-# Low-light LIME / DUAL modülü (LIME/DUAL orijinaline yakın implementasyon)
-_lowlight_module = None
-_lowlight_import_error = None
-
-# Dark Channel Prior tabanlı low-light enhancement modülü
-_dcp_module = None
-_dcp_import_error = None
 
 
 def _get_python_dir():
@@ -37,394 +31,805 @@ def _get_python_dir():
     return _python_dir
 
 
-def _load_retinex_modules():
-    """Retinex modüllerini lazy olarak yükler"""
-    global _single_scale_retinex, _multi_scale_retinex, _retinex_import_error
-    
-    if _single_scale_retinex is not None or _retinex_import_error is not None:
-        return  # Already loaded or failed
-    
-    try:
-        python_dir = _get_python_dir()
-        import importlib.util
-        
-        # Single-scale retinex
-        ssr_spec = importlib.util.spec_from_file_location(
-            "single_scale_retinex", 
-            python_dir / "single-scale-retinex.py"
-        )
-        ssr_module = importlib.util.module_from_spec(ssr_spec)
-        ssr_spec.loader.exec_module(ssr_module)
-        _single_scale_retinex = ssr_module.single_scale_retinex
-        
-        # Multi-scale retinex
-        msr_spec = importlib.util.spec_from_file_location(
-            "multi_scale_retinex", 
-            python_dir / "mutli-scale-retinex.py"
-        )
-        msr_module = importlib.util.module_from_spec(msr_spec)
-        msr_spec.loader.exec_module(msr_module)
-        _multi_scale_retinex = msr_module.multi_scale_retinex
-        
-        logger.info("Python Retinex enhancement modules loaded successfully")
-    except Exception as e:
-        _retinex_import_error = str(e)
-        logger.warning(f"Python Retinex enhancement modules could not be imported: {e}")
-        _single_scale_retinex = None
-        _multi_scale_retinex = None
-
-
-def _load_lowlight_module():
+def _single_scale_retinex_core(img: np.ndarray, variance: float) -> np.ndarray:
     """
-    Low-light LIME/DUAL modülünü lazy olarak yükler.
-    python/lowlight_enhancement.py içindeki `enhance_image_exposure` fonksiyonunu kullanır.
-    """
-    global _lowlight_module, _lowlight_import_error
-
-    if _lowlight_module is not None or _lowlight_import_error is not None:
-        return
-
-    try:
-        python_dir = _get_python_dir()
-        import importlib.util
-
-        ll_spec = importlib.util.spec_from_file_location(
-            "lowlight_enhancement",
-            python_dir / "lowlight_enhancement.py",
-        )
-        ll_module = importlib.util.module_from_spec(ll_spec)
-        ll_spec.loader.exec_module(ll_module)
-        _lowlight_module = ll_module
-
-        logger.info("Low-light LIME/DUAL module loaded successfully")
-    except Exception as e:
-        _lowlight_import_error = str(e)
-        logger.warning(f"Low-light LIME/DUAL module could not be imported: {e}")
-        _lowlight_module = None
-
-
-def _load_dcp_module():
-    """
-    Dark Channel Prior (DCP) modülünü lazy olarak yükler.
-    python/dark_channel_prior.py içindeki enhance_low_light_with_dcp fonksiyonunu kullanır.
-    """
-    global _dcp_module, _dcp_import_error
-
-    if _dcp_module is not None or _dcp_import_error is not None:
-        return
-
-    try:
-        python_dir = _get_python_dir()
-        import importlib.util
-
-        dcp_spec = importlib.util.spec_from_file_location(
-            "dark_channel_prior",
-            python_dir / "dark_channel_prior.py",
-        )
-        dcp_module = importlib.util.module_from_spec(dcp_spec)
-        dcp_spec.loader.exec_module(dcp_module)
-        _dcp_module = dcp_module
-
-        logger.info("Dark Channel Prior module loaded successfully")
-    except Exception as e:
-        _dcp_import_error = str(e)
-        logger.warning(f"Dark Channel Prior module could not be imported: {e}")
-        _dcp_module = None
-
-
-def apply_clahe_to_image(img: np.ndarray, clip_limit: float = 2.0, tile_grid_size: tuple = (8, 8)) -> np.ndarray:
-    """
-    Apply CLAHE to numpy array image.
+    Single-Scale Retinex core function (GitHub repo implementation).
     
     Args:
-        img: BGR format image (numpy array)
-        clip_limit: Contrast limiting threshold
-        tile_grid_size: Grid size
+        img: Input image (numpy array)
+        variance: Gaussian filter standard deviation (sigma)
     
     Returns:
-        Processed image
+        Retinex result in log domain
     """
-    lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-    l, a, b = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
-    cl = clahe.apply(l)
-    limg = cv2.merge((cl, a, b))
-    final_img = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
-    return final_img
+    retinex = np.log10(img) - np.log10(cv2.GaussianBlur(img, (0, 0), variance))
+    return retinex
 
 
-def apply_gamma_to_image(img: np.ndarray, gamma: float = 0.5) -> np.ndarray:
+def _multi_scale_retinex_core(img: np.ndarray, variance_list: list) -> np.ndarray:
     """
-    Apply gamma correction to numpy array image.
+    Multi-Scale Retinex core function (GitHub repo implementation).
     
     Args:
-        img: BGR format image (numpy array)
-        gamma: Gamma value (must be > 0)
+        img: Input image (numpy array)
+        variance_list: List of Gaussian filter standard deviations
     
     Returns:
-        Processed image
+        Retinex result in log domain
     """
-    # Validate gamma value
-    if gamma <= 0:
-        raise ValueError(f"Gamma value must be positive, got {gamma}")
+    retinex = np.zeros_like(img)
+    for variance in variance_list:
+        retinex += _single_scale_retinex_core(img, variance)
+    retinex = retinex / len(variance_list)
+    return retinex
+
+
+# ============================================================================
+# LIME/DUAL Low-Light Enhancement Implementation
+# ============================================================================
+
+def _get_sparse_neighbor(p: int, n: int, m: int):
+    """
+    Komşuluk bilgilerini döndürür.
     
-    table = np.array([((i / 255.0) ** gamma) * 255 
-                      for i in np.arange(0, 256)]).astype("uint8")
-    gamma_corrected_img = cv2.LUT(img, table)
-    return gamma_corrected_img
-
-
-def apply_ssr_to_image(img: np.ndarray, sigma: int = 80) -> np.ndarray:
-    """
-    Apply SSR to numpy array image with safe normalization.
+    Orijinal LIME/DUAL implementasyonundaki `get_sparse_neighbor` fonksiyonuna
+    benzer şekilde, her piksel için 4-komşulu (yukarı, aşağı, sol, sağ) komşuları
+    ve bunların yön bilgisini (yatay/dikey) üretir.
     
     Args:
-        img: BGR format image (numpy array)
-        sigma: Gaussian filter standard deviation
+        p: Düzleştirilmiş indeks (0..n*m-1)
+        n: Yükseklik
+        m: Genişlik
     
     Returns:
-        Processed image
+        dict[int, tuple[int, int, bool]]:
+            q -> (k, l, x) şeklinde:
+              - q: komşu pikselin düzleştirilmiş indeksi
+              - k, l: komşu pikselin satır ve sütunu
+              - x: True ise yatay (left/right), False ise dikey (up/down)
     """
-    _load_retinex_modules()
+    i = p // m
+    j = p % m
+    neighbors = {}
     
-    if _single_scale_retinex is None:
-        raise RuntimeError(f"Single-scale retinex module not available: {_retinex_import_error}")
+    # Sol komşu (yatay)
+    if j - 1 >= 0:
+        q = p - 1
+        neighbors[q] = (i, j - 1, True)
     
-    # Validate sigma
-    if sigma <= 0:
-        raise ValueError(f"Sigma must be positive, got {sigma}")
+    # Sağ komşu (yatay)
+    if j + 1 < m:
+        q = p + 1
+        neighbors[q] = (i, j + 1, True)
     
-    try:
-        b, g, r = cv2.split(img)
-        b_retinex = _single_scale_retinex(b, sigma)
-        g_retinex = _single_scale_retinex(g, sigma)
-        r_retinex = _single_scale_retinex(r, sigma)
-        ssr_output = cv2.merge([b_retinex, g_retinex, r_retinex])
-        return ssr_output
-    except ZeroDivisionError as e:
-        logger.error(f"SSR division by zero error: {e}. Sigma: {sigma}, Image shape: {img.shape}")
-        raise ValueError(f"SSR processing failed: division by zero. This may occur with uniform images. Try different parameters.")
+    # Üst komşu (dikey)
+    if i - 1 >= 0:
+        q = p - m
+        neighbors[q] = (i - 1, j, False)
+    
+    # Alt komşu (dikey)
+    if i + 1 < n:
+        q = p + m
+        neighbors[q] = (i + 1, j, False)
+    
+    return neighbors
 
 
-def apply_msr_to_image(img: np.ndarray, sigma_list: list = [15, 80, 250]) -> np.ndarray:
+def _create_spacial_affinity_kernel(spatial_sigma: float, size: int = 15) -> np.ndarray:
     """
-    Apply MSR to numpy array image with safe normalization.
+    Uzamsal yakınlık temelli Gaussian ağırlık kerneli oluşturur.
+    """
+    kernel = np.zeros((size, size))
+    center = (size // 2, size // 2)
+    
+    for i in range(size):
+        for j in range(size):
+            d = distance.euclidean((i, j), center)
+            kernel[i, j] = np.exp(-0.5 * (d ** 2) / (spatial_sigma ** 2))
+    
+    return kernel
+
+
+def _compute_smoothness_weights(L: np.ndarray, x: int, kernel: np.ndarray, eps: float = 1e-3) -> np.ndarray:
+    """
+    Aydınlatma haritası için düzgünlük ağırlıklarını hesaplar.
     
     Args:
-        img: BGR format image (numpy array)
-        sigma_list: Sigma values list
-    
-    Returns:
-        Processed image
+        L: Başlangıç aydınlatma haritası
+        x: Yön (1: yatay, 0: dikey)
+        kernel: Uzamsal affinity matrisi
+        eps: Sayısal kararlılık için küçük sabit
     """
-    _load_retinex_modules()
+    Lp = cv2.Sobel(L, cv2.CV_64F, int(x == 1), int(x == 0), ksize=1)
     
-    if _multi_scale_retinex is None:
-        raise RuntimeError(f"Multi-scale retinex module not available: {_retinex_import_error}")
+    T = convolve(np.ones_like(L), kernel, mode="constant")
+    T = T / (np.abs(convolve(Lp, kernel, mode="constant")) + eps)
     
-    # Validate sigma_list
-    if not sigma_list or len(sigma_list) == 0:
-        raise ValueError("MSR sigma_list cannot be empty")
-    
-    for sigma in sigma_list:
-        if sigma <= 0:
-            raise ValueError(f"All sigma values must be positive, got {sigma_list}")
-    
-    try:
-        b, g, r = cv2.split(img)
-        b_msr = _multi_scale_retinex(b, sigma_list)
-        g_msr = _multi_scale_retinex(g, sigma_list)
-        r_msr = _multi_scale_retinex(r, sigma_list)
-        msr_output = cv2.merge([b_msr, g_msr, r_msr])
-        return msr_output
-    except ZeroDivisionError as e:
-        logger.error(f"MSR division by zero error: {e}. Sigma list: {sigma_list}, Image shape: {img.shape}")
-        raise ValueError(f"MSR processing failed: division by zero. This may occur with uniform images or empty sigma list. Try different parameters.")
+    return T / (np.abs(Lp) + eps)
 
 
-def apply_lowlight_lime(
-    img: np.ndarray,
-    gamma: float = 0.6,
-    lambda_: float = 0.15,
-    sigma: float = 3.0,
+def _fuse_multi_exposure_images(
+    im: np.ndarray,
+    under_ex: np.ndarray,
+    over_ex: np.ndarray,
     bc: float = 1.0,
     bs: float = 1.0,
     be: float = 1.0,
 ) -> np.ndarray:
     """
-    Gerçek LIME benzeri low-light iyileştirme.
-    python/lowlight_enhancement.py içindeki `enhance_image_exposure` fonksiyonunu
-    dual=False ile çağırır.
+    DUAL makalesindeki exposure fusion yöntemini uygular.
     """
-    _load_lowlight_module()
-
-    if _lowlight_module is None:
-        raise RuntimeError(
-            f"Low-light LIME/DUAL module not available: {_lowlight_import_error}"
-        )
-
-    # LIME: dual=False
-    logger.debug(
-        "Applying Low-light LIME with params: "
-        f"gamma={gamma}, lambda_={lambda_}, sigma={sigma}, bc={bc}, bs={bs}, be={be}"
-    )
-
-    # lowlight_enhancement.enhance_image_exposure BGR uint8 bekler, kendi içinde normalize eder
-    enhanced = _lowlight_module.enhance_image_exposure(
-        img,
-        gamma=gamma,
-        lambda_=lambda_,
-        dual=False,
-        sigma=int(sigma),
-        bc=bc,
-        bs=bs,
-        be=be,
-    )
-
-    return enhanced
+    merge_mertens = cv2.createMergeMertens(bc, bs, be)
+    
+    images = [np.clip(x * 255, 0, 255).astype("uint8") for x in [im, under_ex, over_ex]]
+    fused_images = merge_mertens.process(images)
+    
+    return fused_images
 
 
-def apply_lowlight_dual(
-    img: np.ndarray,
-    gamma: float = 0.6,
-    lambda_: float = 0.15,
-    sigma: float = 3.0,
+def _refine_illumination_map_linear(
+    L: np.ndarray,
+    gamma: float,
+    lambda_: float,
+    kernel: np.ndarray,
+    eps: float = 1e-3,
+) -> np.ndarray:
+    """
+    LIME/DUAL'de tanımlanan optimizasyon problemini çözerek aydınlatma
+    haritasını rafine eder (hızlandırılmış lineer çözücü).
+    """
+    # Düzgünlük ağırlıkları
+    wx = _compute_smoothness_weights(L, x=1, kernel=kernel, eps=eps)
+    wy = _compute_smoothness_weights(L, x=0, kernel=kernel, eps=eps)
+    
+    n, m = L.shape
+    L_1d = L.copy().flatten()
+    
+    # Beş-noktalı, uzamsal olarak inhomogeneous Laplace matrisi
+    row, column, data = [], [], []
+    
+    for p in range(n * m):
+        diag = 0.0
+        for q, (k, l, is_horizontal) in _get_sparse_neighbor(p, n, m).items():
+            weight = wx[k, l] if is_horizontal else wy[k, l]
+            row.append(p)
+            column.append(q)
+            data.append(-weight)
+            diag += weight
+        
+        row.append(p)
+        column.append(p)
+        data.append(diag)
+    
+    F = csr_matrix((data, (row, column)), shape=(n * m, n * m))
+    
+    # Lineer sistemi çöz
+    Id = diags([np.ones(n * m)], [0])
+    A = Id + lambda_ * F
+    
+    L_refined = spsolve(csr_matrix(A), L_1d).reshape((n, m))
+    
+    # Gamma düzeltmesi
+    L_refined = np.clip(L_refined, eps, 1.0) ** gamma
+    
+    return L_refined
+
+
+def _correct_underexposure(
+    im: np.ndarray,
+    gamma: float,
+    lambda_: float,
+    kernel: np.ndarray,
+    eps: float = 1e-3,
+) -> np.ndarray:
+    """
+    LIME/DUAL'deki retinex-tabanlı algoritma ile düşük pozlanmış bölgeleri düzeltir.
+    """
+    # İlk aydınlatma haritası tahmini
+    L = np.max(im, axis=-1)
+    
+    # Aydınlatma haritasını rafine et
+    L_refined = _refine_illumination_map_linear(L, gamma, lambda_, kernel, eps)
+    
+    # Görüntüyü düzelt
+    L_refined_3d = np.repeat(L_refined[..., None], 3, axis=-1)
+    im_corrected = im / L_refined_3d
+    
+    return im_corrected
+
+
+def _enhance_image_exposure(
+    im: np.ndarray,
+    gamma: float,
+    lambda_: float,
+    dual: bool = True,
+    sigma: int = 3,
     bc: float = 1.0,
     bs: float = 1.0,
     be: float = 1.0,
+    eps: float = 1e-3,
 ) -> np.ndarray:
     """
-    Gerçek DUAL benzeri low-light iyileştirme.
-    python/lowlight_enhancement.py içindeki `enhance_image_exposure` fonksiyonunu
-    dual=True ile çağırır.
+    Girdi görüntüsünün pozlamasını LIME veya DUAL yöntemleriyle iyileştirir.
     """
-    _load_lowlight_module()
-
-    if _lowlight_module is None:
-        raise RuntimeError(
-            f"Low-light LIME/DUAL module not available: {_lowlight_import_error}"
-        )
-
-    logger.debug(
-        "Applying Low-light DUAL with params: "
-        f"gamma={gamma}, lambda_={lambda_}, sigma={sigma}, bc={bc}, bs={bs}, be={be}"
-    )
-
-    enhanced = _lowlight_module.enhance_image_exposure(
-        img,
-        gamma=gamma,
-        lambda_=lambda_,
-        dual=True,
-        sigma=int(sigma),
-        bc=bc,
-        bs=bs,
-        be=be,
-    )
-
-    return enhanced
-
-
-def apply_dcp_lowlight(img: np.ndarray) -> np.ndarray:
-    """
-    Dark Channel Prior tabanlı low-light enhancement uygular.
-    python/dark_channel_prior.py içindeki enhance_low_light_with_dcp fonksiyonunu çağırır.
-    """
-    _load_dcp_module()
-
-    if _dcp_module is None:
-        raise RuntimeError(
-            f"Dark Channel Prior module not available: {_dcp_import_error}"
-        )
-
-    logger.debug("Applying Dark Channel Prior based low-light enhancement")
-
-    enhanced = _dcp_module.enhance_low_light_with_dcp(img)
-    return enhanced
-
-
-def apply_dcp_lowlight_guided(img: np.ndarray) -> np.ndarray:
-    """
-    Dark Channel Prior + Guided Filter tabanlı gelişmiş low-light enhancement uygular.
-    python/dark_channel_prior.py içindeki enhance_low_light_with_dcp_guided fonksiyonunu çağırır.
-    """
-    _load_dcp_module()
-
-    if _dcp_module is None:
-        raise RuntimeError(
-            f"Dark Channel Prior module not available: {_dcp_import_error}"
-        )
-
-    logger.debug("Applying Dark Channel Prior + Guided Filter based low-light enhancement")
-
-    enhanced = _dcp_module.enhance_low_light_with_dcp_guided(img)
-    return enhanced
-
-
-def apply_sharpen_to_image(
-    img: np.ndarray, 
-    method: str = 'unsharp', 
-    strength: float = 1.0, 
-    kernel_size: int = 5
-) -> np.ndarray:
-    """
-    Apply sharpening to numpy array image.
+    # Uzamsal affinity kerneli
+    kernel = _create_spacial_affinity_kernel(sigma)
     
-    Args:
-        img: BGR format image (numpy array)
-        method: Sharpening method ('unsharp' or 'laplacian')
-        strength: Sharpening strength (1.0 = normal, 2.0 = strong)
-        kernel_size: Kernel size (for unsharp method)
+    # Normalize et
+    im_normalized = im.astype(float) / 255.0
     
-    Returns:
-        Processed image
-    """
-    if method == 'unsharp':
-        # Unsharp Masking method
-        blurred = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
-        sharpened = cv2.addWeighted(img, 1.0 + strength, blurred, -strength, 0)
-        sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
-    elif method == 'laplacian':
-        # Laplacian filter sharpening
-        kernel = np.array([[-1, -1, -1],
-                           [-1,  9, -1],
-                           [-1, -1, -1]]) * strength
-        sharpened = cv2.filter2D(img, -1, kernel)
-        sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
+    # Düşük pozlanmış bölgeleri düzelt
+    under_corrected = _correct_underexposure(im_normalized, gamma, lambda_, kernel, eps)
+    
+    if dual:
+        # DUAL için: aşırı pozlanmış bölgeleri de düzelt ve birleştir
+        inv_im_normalized = 1.0 - im_normalized
+        over_corrected = 1.0 - _correct_underexposure(inv_im_normalized, gamma, lambda_, kernel, eps)
+        
+        im_corrected = _fuse_multi_exposure_images(im_normalized, under_corrected, over_corrected, bc, bs, be)
     else:
-        sharpened = img.copy()
+        # LIME için yalnızca under_corrected kullanılır
+        im_corrected = under_corrected
     
-    return sharpened
+    # 8-bit aralığa geri dön
+    return np.clip(im_corrected * 255.0, 0, 255).astype("uint8")
 
 
-def apply_denoise(
-    img: np.ndarray,
-    strength: float = 3.0,
+# ============================================================================
+# Dark Channel Prior (DCP) Low-Light Enhancement Implementation
+# ============================================================================
+
+def _get_dark_channel(img: np.ndarray, size: int) -> np.ndarray:
+    """
+    Görüntüdeki en karanlık pikselleri bulur (Dark Channel Prior).
+    img: float64 veya float32, [0,1] aralığında veya 0-255, BGR
+    """
+    # Kanal bazında minimum
+    min_channel = np.min(img, axis=2)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (size, size))
+    dark_channel = cv2.erode(min_channel, kernel)
+    return dark_channel
+
+
+def _estimate_atmospheric_light(img: np.ndarray, dark_channel: np.ndarray) -> np.ndarray:
+    """
+    Ortamdaki en parlak ışığı (atmosferik ışık) tahmin eder.
+    img: float64/float32, [0,1] aralığında, BGR
+    """
+    h, w = img.shape[:2]
+    num_pixels = h * w
+    # En parlak yaklaşık %0.1'lik kısmı al
+    num_top_pixels = int(max(num_pixels / 1000, 1))
+    
+    dark_vec = dark_channel.reshape(num_pixels)
+    img_vec = img.reshape(num_pixels, 3)
+    
+    indices = dark_vec.argsort()[-num_top_pixels:]
+    
+    # En parlak piksellerin ortalamasını alarak atmosferik ışığı bul
+    atm_light = np.mean(img_vec[indices], axis=0)
+    return atm_light
+
+
+def _get_transmission(img: np.ndarray, atm_light: np.ndarray, size: int, omega: float = 0.95) -> np.ndarray:
+    """
+    Işığın ne kadarının geçtiğini (Transmission Map) hesaplar.
+    img: float64/float32, [0,1], BGR
+    """
+    # Bölme sırasında sıfıra gitmemek için küçük epsilon
+    eps = 1e-6
+    norm_img = img / (atm_light.reshape(1, 1, 3) + eps)
+    dark_channel = _get_dark_channel(norm_img, size)
+    transmission = 1.0 - omega * dark_channel
+    return transmission
+
+
+def _simple_guided_filter(I: np.ndarray, p: np.ndarray, r: int, eps: float) -> np.ndarray:
+    """
+    ximgproc.guidedFilter olmadığı durumda kullanılan basit guided filter implementasyonu.
+    I: guide image (grayscale, float64)
+    p: input image (transmission map, float64)
+    """
+    mean_I = cv2.boxFilter(I, cv2.CV_64F, (r, r))
+    mean_p = cv2.boxFilter(p, cv2.CV_64F, (r, r))
+    mean_Ip = cv2.boxFilter(I * p, cv2.CV_64F, (r, r))
+    cov_Ip = mean_Ip - mean_I * mean_p
+    
+    mean_II = cv2.boxFilter(I * I, cv2.CV_64F, (r, r))
+    var_I = mean_II - mean_I * mean_I
+    
+    a = cov_Ip / (var_I + eps)
+    b = mean_p - a * mean_I
+    
+    mean_a = cv2.boxFilter(a, cv2.CV_64F, (r, r))
+    mean_b = cv2.boxFilter(b, cv2.CV_64F, (r, r))
+    
+    q = mean_a * I + mean_b
+    return q
+
+
+def _guided_filter_refinement(
+    img_gray: np.ndarray,
+    transmission: np.ndarray,
+    radius: int = 60,
+    eps: float = 1e-4,
 ) -> np.ndarray:
     """
-    Renk gürültülerini (mavi/kırmızı lekeler) temizler.
-
-    strength: Temizleme gücü. 3.0 hafif, 10.0 oldukça güçlüdür.
+    Guided filter ile kaba transmission haritasını iyileştirir.
+    Mümkünse cv2.ximgproc.guidedFilter kullanır, değilse simple_guided_filter'e düşer.
     """
-    # fastNlMeansDenoisingColored özellikle renkli lekeler için tasarlanmıştır.
-    # h: Luma (parlaklık) temizleme gücü
-    # hColor: Chroma (renk) temizleme gücü
-    h = float(strength)
-    h_color = float(strength + 7.0)
+    # Önce ximgproc içindeki guidedFilter'ı dene
+    try:
+        guided = cv2.ximgproc.guidedFilter(  # type: ignore[attr-defined]
+            guide=img_gray.astype(np.float32),
+            src=transmission.astype(np.float32),
+            radius=radius,
+            eps=eps,
+        )
+        return guided.astype(np.float64)
+    except (AttributeError, cv2.error):
+        # opencv-contrib yoksa veya ximgproc bulunamazsa basit guided filter kullan
+        return _simple_guided_filter(
+            img_gray.astype(np.float64),
+            transmission.astype(np.float64),
+            radius,
+            eps,
+        )
 
-    denoised = cv2.fastNlMeansDenoisingColored(
-        img,
-        None,
-        h=h,
-        hColor=h_color,
-        templateWindowSize=7,
-        searchWindowSize=21,
-    )
-    return denoised
+
+def _dehaze(img: np.ndarray, patch_size: int = 15, tmin: float = 0.1) -> np.ndarray:
+    """
+    Sis giderme (Dehazing) işlemini uygular.
+    img: BGR uint8 görüntü
+    """
+    img_float = img.astype("float64") / 255.0
+    
+    # 1. Dark Channel Hesapla
+    dark = _get_dark_channel(img_float, patch_size)
+    
+    # 2. Atmosferik Işığı Tahmin Et
+    A = _estimate_atmospheric_light(img_float, dark)
+    
+    # 3. İletim Haritasını (Transmission) Hesapla
+    te = _get_transmission(img_float, A, patch_size)
+    
+    # Sıfıra bölünme hatasını önlemek için t değerini sınırla
+    t = np.maximum(te, tmin)
+    
+    # 4. Görüntüyü Kurtar (Recover Scene Radiance)
+    res = np.empty_like(img_float)
+    for i in range(3):
+        res[:, :, i] = (img_float[:, :, i] - A[i]) / t + A[i]
+    
+    # Değerleri 0-255 arasına sıkıştır
+    res = np.clip(res, 0.0, 1.0)
+    return (res * 255.0).astype(np.uint8)
+
+
+def _dehaze_advanced(img: np.ndarray, patch_size: int = 15, tmin: float = 0.1) -> np.ndarray:
+    """
+    Guided filter ile iyileştirilmiş gelişmiş sis giderme (dehazing).
+    img: BGR uint8 görüntü
+    """
+    img_float = img.astype("float64") / 255.0
+    
+    # 1. Dark Channel ve Atmosferik Işık
+    dark = _get_dark_channel(img_float, patch_size)
+    A = _estimate_atmospheric_light(img_float, dark)
+    
+    # 2. Kaba Transmission Haritası
+    te = _get_transmission(img_float, A, patch_size)
+    
+    # 3. Guided Filter ile transmission'ı iyileştir
+    img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY).astype("float64") / 255.0
+    t_refined = _guided_filter_refinement(img_gray, te, radius=60, eps=1e-4)
+    
+    t = np.maximum(t_refined, tmin)
+    
+    # 4. Görüntüyü Kurtar (Recover Scene Radiance)
+    res = np.empty_like(img_float)
+    for i in range(3):
+        res[:, :, i] = (img_float[:, :, i] - A[i]) / t + A[i]
+    
+    res = np.clip(res, 0.0, 1.0)
+    return (res * 255.0).astype(np.uint8)
 
 
 class EnhancementService:
     """Image enhancement service for business logic"""
-    
+
+    # ------------------------------------------------------------------
+    # Core enhancement operations (moved from module-level functions)
+    # ------------------------------------------------------------------
+
+    def apply_clahe_to_image(
+        self,
+        img: np.ndarray,
+        clip_limit: float = 2.0,
+        tile_grid_size: tuple = (8, 8),
+    ) -> np.ndarray:
+        """
+        Apply CLAHE to numpy array image.
+
+        Args:
+            img: BGR format image (numpy array)
+            clip_limit: Contrast limiting threshold
+            tile_grid_size: Grid size
+
+        Returns:
+            Processed image
+        """
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        l, a, b = cv2.split(lab)
+        clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
+        cl = clahe.apply(l)
+        limg = cv2.merge((cl, a, b))
+        final_img = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+        return final_img
+
+    def apply_gamma_to_image(self, img: np.ndarray, gamma: float = 0.5) -> np.ndarray:
+        """
+        Apply gamma correction to numpy array image.
+
+        Args:
+            img: BGR format image (numpy array)
+            gamma: Gamma value (must be > 0)
+
+        Returns:
+            Processed image
+        """
+        # Validate gamma value
+        if gamma <= 0:
+            raise ValueError(f"Gamma value must be positive, got {gamma}")
+
+        table = np.array([((i / 255.0) ** gamma) * 255 for i in np.arange(0, 256)]).astype(
+            "uint8"
+        )
+        gamma_corrected_img = cv2.LUT(img, table)
+        return gamma_corrected_img
+
+    def apply_ssr_to_image(self, img: np.ndarray, sigma: int = 80) -> np.ndarray:
+        """
+        Apply SSR to numpy array image using GitHub repo implementation with
+        histogram-based normalization.
+
+        Args:
+            img: BGR format image (numpy array)
+            sigma: Gaussian filter standard deviation (variance)
+
+        Returns:
+            Processed image
+        """
+        # Validate sigma
+        if sigma <= 0:
+            raise ValueError(f"Sigma must be positive, got {sigma}")
+
+        try:
+            # Convert to float64 and add 1.0 to avoid log(0)
+            img_float = img.astype(np.float64) + 1.0
+
+            # Apply single-scale retinex
+            img_retinex = _single_scale_retinex_core(img_float, float(sigma))
+
+            # Apply histogram-based normalization for each channel (GitHub repo approach)
+            for i in range(img_retinex.shape[2]):
+                unique, count = np.unique(
+                    np.int32(img_retinex[:, :, i] * 100), return_counts=True
+                )
+
+                # Find zero count
+                zero_count = 0
+                for u, c in zip(unique, count):
+                    if u == 0:
+                        zero_count = c
+                        break
+
+                # Initialize bounds
+                low_val = unique[0] / 100.0
+                high_val = unique[-1] / 100.0
+
+                # Outlier clipping: values with count < 10% of zero_count (if zero_count exists)
+                if zero_count > 0:
+                    for u, c in zip(unique, count):
+                        if u < 0 and c < zero_count * 0.1:
+                            low_val = u / 100.0
+                        if u > 0 and c < zero_count * 0.1:
+                            high_val = u / 100.0
+                            break
+
+                # Apply clipping
+                img_retinex[:, :, i] = np.maximum(
+                    np.minimum(img_retinex[:, :, i], high_val), low_val
+                )
+
+                # Min-max normalization to [0, 255]
+                min_val = np.min(img_retinex[:, :, i])
+                max_val = np.max(img_retinex[:, :, i])
+
+                if max_val == min_val or abs(max_val - min_val) < 1e-10:
+                    # Uniform channel, return original
+                    img_retinex[:, :, i] = img[:, :, i].astype(np.float64)
+                else:
+                    img_retinex[:, :, i] = (
+                        (img_retinex[:, :, i] - min_val) / (max_val - min_val) * 255
+                    )
+
+            # Convert back to uint8
+            img_retinex = np.uint8(img_retinex)
+            return img_retinex
+
+        except Exception as e:
+            logger.error(
+                f"SSR processing error: {e}. Sigma: {sigma}, Image shape: {img.shape}"
+            )
+            raise ValueError(f"SSR processing failed: {str(e)}")
+
+    def apply_msr_to_image(
+        self, img: np.ndarray, sigma_list: list = [15, 80, 250]
+    ) -> np.ndarray:
+        """
+        Apply MSR to numpy array image using GitHub repo implementation with
+        histogram-based normalization.
+
+        Args:
+            img: BGR format image (numpy array)
+            sigma_list: List of Gaussian filter standard deviations (variance values)
+
+        Returns:
+            Processed image
+        """
+        # Validate sigma_list
+        if not sigma_list or len(sigma_list) == 0:
+            raise ValueError("MSR sigma_list cannot be empty")
+
+        for sigma in sigma_list:
+            if sigma <= 0:
+                raise ValueError(
+                    f"All MSR sigma values must be positive, got {sigma_list}"
+                )
+
+        try:
+            # Convert to float64 and add 1.0 to avoid log(0)
+            img_float = img.astype(np.float64) + 1.0
+
+            # Apply multi-scale retinex
+            img_retinex = _multi_scale_retinex_core(
+                img_float, [float(s) for s in sigma_list]
+            )
+
+            # Apply histogram-based normalization for each channel (GitHub repo approach)
+            for i in range(img_retinex.shape[2]):
+                unique, count = np.unique(
+                    np.int32(img_retinex[:, :, i] * 100), return_counts=True
+                )
+
+                # Find zero count
+                zero_count = 0
+                for u, c in zip(unique, count):
+                    if u == 0:
+                        zero_count = c
+                        break
+
+                # Initialize bounds
+                low_val = unique[0] / 100.0
+                high_val = unique[-1] / 100.0
+
+                # Outlier clipping: values with count < 10% of zero_count (if zero_count exists)
+                if zero_count > 0:
+                    for u, c in zip(unique, count):
+                        if u < 0 and c < zero_count * 0.1:
+                            low_val = u / 100.0
+                        if u > 0 and c < zero_count * 0.1:
+                            high_val = u / 100.0
+                            break
+
+                # Apply clipping
+                img_retinex[:, :, i] = np.maximum(
+                    np.minimum(img_retinex[:, :, i], high_val), low_val
+                )
+
+                # Min-max normalization to [0, 255]
+                min_val = np.min(img_retinex[:, :, i])
+                max_val = np.max(img_retinex[:, :, i])
+
+                if max_val == min_val or abs(max_val - min_val) < 1e-10:
+                    # Uniform channel, return original
+                    img_retinex[:, :, i] = img[:, :, i].astype(np.float64)
+                else:
+                    img_retinex[:, :, i] = (
+                        (img_retinex[:, :, i] - min_val) / (max_val - min_val) * 255
+                    )
+
+            # Convert back to uint8
+            img_retinex = np.uint8(img_retinex)
+            return img_retinex
+
+        except Exception as e:
+            logger.error(
+                f"MSR processing error: {e}. Sigma list: {sigma_list}, Image shape: {img.shape}"
+            )
+            raise ValueError(f"MSR processing failed: {str(e)}")
+
+    def apply_lowlight_lime(
+        self,
+        img: np.ndarray,
+        gamma: float = 0.6,
+        lambda_: float = 0.15,
+        sigma: float = 3.0,
+        bc: float = 1.0,
+        bs: float = 1.0,
+        be: float = 1.0,
+    ) -> np.ndarray:
+        """
+        LIME (Low-light Image Enhancement) benzeri low-light iyileştirme.
+        Doğrudan bu sınıf içinde implement edilmiştir, harici modül gerektirmez.
+        """
+        logger.debug(
+            "Applying Low-light LIME with params: "
+            f"gamma={gamma}, lambda_={lambda_}, sigma={sigma}, bc={bc}, bs={bs}, be={be}"
+        )
+
+        # BGR uint8 bekler, kendi içinde normalize eder
+        enhanced = _enhance_image_exposure(
+            img,
+            gamma=gamma,
+            lambda_=lambda_,
+            dual=False,
+            sigma=int(sigma),
+            bc=bc,
+            bs=bs,
+            be=be,
+        )
+
+        return enhanced
+
+    def apply_lowlight_dual(
+        self,
+        img: np.ndarray,
+        gamma: float = 0.6,
+        lambda_: float = 0.15,
+        sigma: float = 3.0,
+        bc: float = 1.0,
+        bs: float = 1.0,
+        be: float = 1.0,
+    ) -> np.ndarray:
+        """
+        DUAL (Dual Illumination Estimation) benzeri low-light iyileştirme.
+        Doğrudan bu sınıf içinde implement edilmiştir, harici modül gerektirmez.
+        """
+        logger.debug(
+            "Applying Low-light DUAL with params: "
+            f"gamma={gamma}, lambda_={lambda_}, sigma={sigma}, bc={bc}, bs={bs}, be={be}"
+        )
+
+        enhanced = _enhance_image_exposure(
+            img,
+            gamma=gamma,
+            lambda_=lambda_,
+            dual=True,
+            sigma=int(sigma),
+            bc=bc,
+            bs=bs,
+            be=be,
+        )
+
+        return enhanced
+
+    def apply_dcp_lowlight(self, img: np.ndarray) -> np.ndarray:
+        """
+        Dark Channel Prior tabanlı low-light enhancement uygular.
+        Doğrudan bu sınıf içinde implement edilmiştir, harici modül gerektirmez.
+
+        Yöntem:
+          1. Görüntüyü ters çevir (invert)
+          2. İnvert edilmiş görüntüye dehaze uygula
+          3. Sonucu tekrar ters çevir
+        """
+        logger.debug("Applying Dark Channel Prior based low-light enhancement")
+
+        if img.dtype != np.uint8:
+            img = np.clip(img, 0, 255).astype(np.uint8)
+
+        # 1. Adım: Invert
+        inverted_img = 255 - img
+
+        # 2. Adım: Dehaze uygula
+        dehazed_inverted = _dehaze(inverted_img)
+
+        # 3. Adım: Sonucu tekrar ters çevir
+        enhanced_img = 255 - dehazed_inverted
+
+        return enhanced_img
+
+    def apply_dcp_lowlight_guided(self, img: np.ndarray) -> np.ndarray:
+        """
+        Dark Channel Prior + Guided Filter tabanlı gelişmiş low-light enhancement
+        uygular. Doğrudan bu sınıf içinde implement edilmiştir, harici modül
+        gerektirmez.
+
+        Yöntem:
+          1. Görüntüyü ters çevir
+          2. Gelişmiş dehaze (guided filter ile) uygula
+          3. Tekrar ters çevir
+        """
+        logger.debug(
+            "Applying Dark Channel Prior + Guided Filter based low-light enhancement"
+        )
+
+        if img.dtype != np.uint8:
+            img = np.clip(img, 0, 255).astype(np.uint8)
+
+        inverted_img = 255 - img
+        dehazed_inverted = _dehaze_advanced(inverted_img)
+        enhanced_img = 255 - dehazed_inverted
+
+        return enhanced_img
+
+    def apply_sharpen_to_image(
+        self,
+        img: np.ndarray,
+        method: str = "unsharp",
+        strength: float = 1.0,
+        kernel_size: int = 5,
+    ) -> np.ndarray:
+        """
+        Apply sharpening to numpy array image.
+
+        Args:
+            img: BGR format image (numpy array)
+            method: Sharpening method ('unsharp' or 'laplacian')
+            strength: Sharpening strength (1.0 = normal, 2.0 = strong)
+            kernel_size: Kernel size (for unsharp method)
+
+        Returns:
+            Processed image
+        """
+        if method == "unsharp":
+            # Unsharp Masking method
+            blurred = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+            sharpened = cv2.addWeighted(img, 1.0 + strength, blurred, -strength, 0)
+            sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
+        elif method == "laplacian":
+            # Laplacian filter sharpening
+            kernel = (
+                np.array(
+                    [
+                        [-1, -1, -1],
+                        [-1, 9, -1],
+                        [-1, -1, -1],
+                    ]
+                )
+                * strength
+            )
+            sharpened = cv2.filter2D(img, -1, kernel)
+            sharpened = np.clip(sharpened, 0, 255).astype(np.uint8)
+        else:
+            sharpened = img.copy()
+
+        return sharpened
+
+    def apply_denoise(self, img: np.ndarray, strength: float = 3.0) -> np.ndarray:
+        """
+        Renk gürültülerini (mavi/kırmızı lekeler) temizler.
+
+        strength: Temizleme gücü. 3.0 hafif, 10.0 oldukça güçlüdür.
+        """
+        # fastNlMeansDenoisingColored özellikle renkli lekeler için tasarlanmıştır.
+        # h: Luma (parlaklık) temizleme gücü
+        # hColor: Chroma (renk) temizleme gücü
+        h = float(strength)
+        h_color = float(strength + 7.0)
+
+        denoised = cv2.fastNlMeansDenoisingColored(
+            img,
+            None,
+            h=h,
+            hColor=h_color,
+            templateWindowSize=7,
+            searchWindowSize=21,
+        )
+        return denoised
+
     def enhance_image(
         self,
         image_bytes: bytes,
@@ -635,28 +1040,28 @@ class EnhancementService:
             
             for method_name, params in methods_to_apply:
                 if method_name == 'clahe':
-                    processed_img = apply_clahe_to_image(
+                    processed_img = self.apply_clahe_to_image(
                         processed_img,
                         clip_limit=params['clip_limit'],
                         tile_grid_size=params['tile_size']
                     )
                 elif method_name == 'gamma':
-                    processed_img = apply_gamma_to_image(
+                    processed_img = self.apply_gamma_to_image(
                         processed_img,
                         gamma=params['gamma']
                     )
                 elif method_name == 'ssr':
-                    processed_img = apply_ssr_to_image(
+                    processed_img = self.apply_ssr_to_image(
                         processed_img,
                         sigma=params['sigma']
                     )
                 elif method_name == 'msr':
-                    processed_img = apply_msr_to_image(
+                    processed_img = self.apply_msr_to_image(
                         processed_img,
                         sigma_list=params['sigmas']
                     )
                 elif method_name == 'sharpen':
-                    processed_img = apply_sharpen_to_image(
+                    processed_img = self.apply_sharpen_to_image(
                         processed_img,
                         method=params['method'],
                         strength=params['strength'],
@@ -690,12 +1095,12 @@ class EnhancementService:
                     plane = ((gray >> bit) & 1) * 255
                     processed_img = cv2.cvtColor(plane.astype(np.uint8), cv2.COLOR_GRAY2BGR)
                 elif method_name == 'denoise':
-                    processed_img = apply_denoise(
+                    processed_img = self.apply_denoise(
                         processed_img,
                         strength=params.get('strength', 3.0),
                     )
                 elif method_name == 'lowlight_lime':
-                    processed_img = apply_lowlight_lime(
+                    processed_img = self.apply_lowlight_lime(
                         processed_img,
                         gamma=params['gamma'],
                         lambda_=params['lambda_'],
@@ -705,7 +1110,7 @@ class EnhancementService:
                         be=params['be'],
                     )
                 elif method_name == 'lowlight_dual':
-                    processed_img = apply_lowlight_dual(
+                    processed_img = self.apply_lowlight_dual(
                         processed_img,
                         gamma=params['gamma'],
                         lambda_=params['lambda_'],
@@ -715,9 +1120,9 @@ class EnhancementService:
                         be=params['be'],
                     )
                 elif method_name == 'dcp':
-                    processed_img = apply_dcp_lowlight(processed_img)
+                    processed_img = self.apply_dcp_lowlight(processed_img)
                 elif method_name == 'dcp_guided':
-                    processed_img = apply_dcp_lowlight_guided(processed_img)
+                    processed_img = self.apply_dcp_lowlight_guided(processed_img)
             
             # Encode to JPEG bytes
             _, encoded_img = cv2.imencode('.jpg', processed_img)
@@ -747,7 +1152,7 @@ class EnhancementService:
                 raise ValueError("Invalid image format")
 
             # DCP tabanlı low-light enhancement uygula
-            processed_img = apply_dcp_lowlight(img)
+            processed_img = self.apply_dcp_lowlight(img)
 
             # Encode to JPEG bytes
             _, encoded_img = cv2.imencode('.jpg', processed_img)
@@ -775,7 +1180,7 @@ class EnhancementService:
             if img is None:
                 raise ValueError("Invalid image format")
 
-            processed_img = apply_dcp_lowlight_guided(img)
+            processed_img = self.apply_dcp_lowlight_guided(img)
 
             _, encoded_img = cv2.imencode('.jpg', processed_img)
             return encoded_img.tobytes()

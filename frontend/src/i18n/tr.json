@@ -234,23 +234,33 @@
             "input": "Giriş",
             "output": "Çıkış",
             "params": "Parametreler",
-            "actions": "Aksiyonlar"
+            "actions": "Aksiyonlar",
+            "delete": "Sil"
         },
         "actions": {
-            "showImages": "Giriş/Çıkış Görüntüleri",
-            "showParams": "Parametreleri Göster",
-            "showAll": "Hepsini Göster",
+            "showImages": "Sonuçlar",
+            "showParams": "Parametreler",
+            "showAll": "Detaylar",
             "export": "Dışa Aktar",
             "viewInputImage": "Giriş resmini görüntüle",
-            "viewOutputImage": "Çıkış resmini görüntüle"
+            "viewOutputImage": "Çıkış resmini görüntüle",
+            "delete": "Sil"
         },
         "modal": {
             "imagesTitle": "Giriş / Çıkış Görüntüleri",
             "paramsTitle": "Parametreler",
             "allTitle": "Detaylar",
+            "deleteTitle": "Sonucu sil",
             "input": "Giriş",
             "output": "Çıkış",
             "params": "Parametreler"
+        },
+        "delete": {
+            "confirm": "Bu sonucu silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.",
+            "cancel": "Vazgeç",
+            "confirmYes": "Evet, sil",
+            "success": "Sonuç başarıyla silindi",
+            "error": "Sonuç silinirken bir hata oluştu"
         },
         "noParams": "Parametre bulunamadı"
     }

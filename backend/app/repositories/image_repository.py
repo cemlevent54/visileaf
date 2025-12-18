@@ -72,3 +72,20 @@ class ImageRepository:
         self.session.refresh(image)
         return image
 
+    def delete(self, image_id: UUID) -> bool:
+        """
+        Hard delete image by ID.
+        
+        Args:
+            image_id: Image UUID
+        
+        Returns:
+            True if deleted, False if not found
+        """
+        image = self.get_by_id(image_id)
+        if not image:
+            return False
+        self.session.delete(image)
+        self.session.commit()
+        return True
+

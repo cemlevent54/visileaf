@@ -661,6 +661,106 @@
           }
         }
       }
+    },
+    "/api/enhancement/results/{image_id}": {
+      "delete": {
+        "tags": [
+          "enhancement"
+        ],
+        "summary": "Delete Enhancement Result",
+        "description": "Hard delete an enhancement result (output image) and its files.\n\n- **image_id**: Output image UUID (the enhancement result to delete)",
+        "operationId": "delete_enhancement_result_api_enhancement_results__image_id__delete",
+        "parameters": [
+          {
+            "name": "image_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Image Id"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/enhancement/export/results/{image_id}": {
+      "post": {
+        "tags": [
+          "enhancement"
+        ],
+        "summary": "Export Enhancement Result",
+        "description": "Export a single enhancement result as a PDF (input/output images + parameters).\n\n- **image_id**: Output image UUID (the enhancement result to export)",
+        "operationId": "export_enhancement_result_api_enhancement_export_results__image_id__post",
+        "parameters": [
+          {
+            "name": "image_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Image Id"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
