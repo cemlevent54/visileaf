@@ -31,7 +31,7 @@ This repository includes:
 
 ## Features
 
-- **Image Enhancement** - Enhance low-light images using classical image processing techniques
+- **Image Enhancement** - Enhance low-light images using classical image processing techniques using classical techniques such as Dark Channel Prior, CLAHE, and Retinex.
 - **Deep Learning Model Enhancement** - Leverage state-of-the-art deep learning models for superior image quality
 - **Image Processing** - Apply various image processing algorithms for enhancement
 
@@ -101,7 +101,7 @@ Make sure Docker is installed on your system before proceeding. You can download
 **2. Clone the Repository**
 
 ```bash
-git clone https://github.com/cemlevet54/visileaf.git
+git clone https://github.com/cemlevent54/visileaf.git
 ```
 
 **3. Navigate to the Project Directory**
@@ -122,9 +122,7 @@ For detailed instructions on using Docker with the database, please refer to:
 
 **5. Download and Prepare the Dataset**
 
-> **Note:** The dataset link will be added here. Please check the repository for the latest dataset information.
-
-- Download the `dataset.zip` file
+- Download the `visileaf_dataset_and_pretrained_models.zip` file
 - Unzip the archive
 - Move the `dataset` folder into the project root directory
 
@@ -146,11 +144,11 @@ PORT=8080
 LOG_LEVEL=INFO
 
 # Cors Configurations
-CORS_ALLOWED_ORIGINS=
+CORS_ALLOWED_ORIGINS=http://localhost:3000
 
 # Database Configurations
-DB_HOST=
-DB_PORT=
+DB_HOST=localhost
+DB_PORT=5432
 DB_NAME=
 DB_USER=
 DB_PASSWORD=
@@ -181,6 +179,8 @@ RESEND_API_KEY=
 
 
 
+
+
 **9. Run the Backend**
 
 ```bash
@@ -188,6 +188,8 @@ cd backend
 python -m venv .venv
 .venv\Scripts\activate.bat
 pip install -r requirements.txt
+python -m app migrate upgrade head # Apply database migrations (after Postgres is up)
+
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 

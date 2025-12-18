@@ -6,6 +6,7 @@ interface EnhancementParams {
     use_msr?: boolean
     msr_sigmas?: number[]
     use_clahe?: boolean
+    use_hist_eq?: boolean
     clahe_clip?: number
     clahe_tile_size?: [number, number]
     use_sharpen?: boolean

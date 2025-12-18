@@ -43,6 +43,7 @@ async def enhance_image(
         "use_msr": true,
         "msr_sigmas": [15, 80, 250],
         "use_clahe": true,
+        "use_hist_eq": false,
         "clahe_clip": 2.5,
         "clahe_tile_size": [8, 8],
         "use_ssr": false,

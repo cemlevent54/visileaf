@@ -488,6 +488,69 @@ class EnhancementService:
         gamma_corrected_img = cv2.LUT(img, table)
         return gamma_corrected_img
 
+    def apply_histogram_equalization(self, img: np.ndarray) -> np.ndarray:
+        """
+        Apply global histogram equalization to improve contrast.
+
+        This uses a classic histogram equalization formula similar to the one
+        implemented in the Jupyter notebook, applied on the luminance channel
+        to preserve colors.
+
+        Args:
+            img: BGR or grayscale uint8 image (numpy array)
+
+        Returns:
+            Processed image with enhanced contrast.
+        """
+        if img is None:
+            raise ValueError("Input image is None for histogram equalization")
+
+        # Ensure uint8 range [0, 255]
+        if img.dtype != np.uint8:
+            img = np.clip(img, 0, 255).astype(np.uint8)
+
+        def _equalize_channel(channel: np.ndarray) -> np.ndarray:
+            # Flatten to 1D
+            flat = channel.flatten().astype(np.uint8)
+            # Histogram: how many pixels for each value 0..255
+            pixel_num = np.bincount(flat, minlength=256)
+            # Cumulative sum (CDF)
+            cdf = np.cumsum(pixel_num)
+            # Ignore zeros to avoid division by zero
+            non_zero = cdf[cdf > 0]
+            if non_zero.size == 0:
+                return channel
+            cdf_min = non_zero.min()
+            cdf_max = cdf.max()
+            if cdf_max == cdf_min:
+                # Flat histogram; nothing to equalize
+                return channel
+            # Classic histogram equalization formula:
+            # s_k = (cdf_k - cdf_min) / (N - cdf_min) * (L - 1)
+            numerator = (cdf - cdf_min) * 255.0
+            N = float(cdf_max - cdf_min)
+            lut = np.clip(numerator / N, 0, 255).astype(np.uint8)
+            equalized = lut[flat].reshape(channel.shape)
+            return equalized
+
+        # Grayscale image
+        if len(img.shape) == 2 or (len(img.shape) == 3 and img.shape[2] == 1):
+            ch = img if len(img.shape) == 2 else img[:, :, 0]
+            eq_ch = _equalize_channel(ch)
+            if len(img.shape) == 2:
+                return eq_ch
+            out = img.copy()
+            out[:, :, 0] = eq_ch
+            return out
+
+        # Color image: equalize only luminance (Y) channel to preserve colors
+        ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+        y, cr, cb = cv2.split(ycrcb)
+        y_eq = _equalize_channel(y)
+        ycrcb_eq = cv2.merge((y_eq, cr, cb))
+        eq_img = cv2.cvtColor(ycrcb_eq, cv2.COLOR_YCrCb2BGR)
+        return eq_img
+
     def apply_ssr_to_image(self, img: np.ndarray, sigma: int = 80) -> np.ndarray:
         """
         Apply SSR to numpy array image using GitHub repo implementation with
@@ -838,6 +901,7 @@ class EnhancementService:
         use_clahe: bool = False,
         clahe_clip: float = 3.0,
         clahe_tile_size: list = [8, 8],
+        use_hist_eq: bool = False,
         use_ssr: bool = False,
         ssr_sigma: int = 80,
         use_msr: bool = False,
@@ -964,6 +1028,8 @@ class EnhancementService:
             if use_clahe:
                 tile_size_tuple = tuple(clahe_tile_size) if isinstance(clahe_tile_size, list) else clahe_tile_size
                 methods_to_apply.append(('clahe', {'clip_limit': clahe_clip, 'tile_size': tile_size_tuple}))
+            if use_hist_eq:
+                methods_to_apply.append(('hist_eq', {}))
             if use_gamma:
                 methods_to_apply.append(('gamma', {'gamma': gamma}))
             if use_ssr:
@@ -1045,6 +1111,8 @@ class EnhancementService:
                         clip_limit=params['clip_limit'],
                         tile_grid_size=params['tile_size']
                     )
+                elif method_name == 'hist_eq':
+                    processed_img = self.apply_histogram_equalization(processed_img)
                 elif method_name == 'gamma':
                     processed_img = self.apply_gamma_to_image(
                         processed_img,

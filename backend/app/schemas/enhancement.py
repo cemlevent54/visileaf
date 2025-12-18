@@ -17,6 +17,12 @@ class EnhancementParams(BaseModel):
         description="CLAHE tile grid size [width, height]"
     )
     
+    # Klasik histogram eşitleme
+    use_hist_eq: bool = Field(
+        default=False,
+        description="Use global histogram equalization on luminance channel",
+    )
+    
     use_ssr: bool = Field(default=False, description="Use Single-Scale Retinex")
     ssr_sigma: int = Field(default=80, description="SSR sigma value")
     
@@ -141,6 +147,7 @@ class EnhancementParams(BaseModel):
                 "use_msr": True,
                 "msr_sigmas": [15, 80, 250],
                 "use_clahe": True,
+                "use_hist_eq": False,
                 "clahe_clip": 2.5,
                 "clahe_tile_size": [8, 8],
                 "use_sharpen": False,

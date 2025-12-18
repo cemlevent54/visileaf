@@ -161,10 +161,13 @@
         "ssr": "SSR (Single-Scale Retinex)",
         "useSsr": "Use SSR",
         "ssrSigma": "SSR Sigma Value",
+        "histEq": "Histogram Equalization",
+        "useHistEq": "Use histogram equalization",
         "methodNames": {
             "gamma": "Gamma",
             "msr": "MSR",
             "clahe": "CLAHE",
+            "hist_eq": "Histogram Equalization",
             "sharpen": "Sharpen",
             "ssr": "SSR",
             "lowlight_lime": "Low-light (LIME-like)",

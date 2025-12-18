@@ -15,6 +15,7 @@ interface EnhancementParams {
   use_msr: boolean
   msr_sigmas: [number, number, number]
   use_clahe: boolean
+  use_hist_eq: boolean
   clahe_clip: number
   clahe_tile_size: [number, number]
   use_sharpen: boolean
@@ -65,6 +66,7 @@ function EnhanceYourImage() {
     use_msr: true,
     msr_sigmas: [15, 80, 250],
     use_clahe: true,
+    use_hist_eq: false,
     clahe_clip: 2.5,
     clahe_tile_size: [8, 8],
     use_sharpen: true,
@@ -117,6 +119,7 @@ function EnhanceYourImage() {
     if (params.use_gamma) activeMethods.push('gamma')
     if (params.use_msr) activeMethods.push('msr')
     if (params.use_clahe) activeMethods.push('clahe')
+    if (params.use_hist_eq) activeMethods.push('hist_eq')
     if (params.use_sharpen) activeMethods.push('sharpen')
     if (params.use_ssr) activeMethods.push('ssr')
     if (params.use_negative) activeMethods.push('negative')
@@ -264,6 +267,7 @@ function EnhanceYourImage() {
         use_msr: params.use_msr,
         msr_sigmas: params.msr_sigmas,
         use_clahe: params.use_clahe,
+        use_hist_eq: params.use_hist_eq,
         clahe_clip: params.clahe_clip,
         clahe_tile_size: params.clahe_tile_size,
         use_sharpen: params.use_sharpen,
@@ -640,6 +644,24 @@ function EnhanceYourImage() {
                       </div>
                     </>
                   )}
+                </div>
+
+                {/* Histogram Equalization */}
+                <div className="parameter-group">
+                  <h3 className="parameter-group-title">
+                    {t('enhance.histEq') || 'Histogram Equalization'}
+                  </h3>
+                  <Checkbox
+                    label={t('enhance.useHistEq') || 'Use histogram equalization'}
+                    name="use_hist_eq"
+                    value={params.use_hist_eq ? 'checked' : ''}
+                    onChange={(value) => {
+                      const checked = value === 'checked'
+                      setParams(prev => ({ ...prev, use_hist_eq: checked }))
+                      setTimeout(updateOrder, 0)
+                    }}
+                    single={true}
+                  />
                 </div>
 
                 {/* MSR */}

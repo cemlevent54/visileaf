@@ -323,7 +323,7 @@
           "enhancement"
         ],
         "summary": "Enhance Image",
-        "description": "Enhance image with specified methods.\n\n- **image**: Image file (JPEG, PNG, etc.)\n- **params_json**: Enhancement parameters as JSON string\n\nExample JSON:\n```json\n{\n    \"use_gamma\": true,\n    \"gamma\": 0.5,\n    \"use_msr\": true,\n    \"msr_sigmas\": [15, 80, 250],\n    \"use_clahe\": true,\n    \"clahe_clip\": 2.5,\n    \"clahe_tile_size\": [8, 8],\n    \"use_ssr\": false,\n    \"ssr_sigma\": 80,\n    \"use_sharpen\": false,\n    \"sharpen_method\": \"unsharp\",\n    \"sharpen_strength\": 1.0,\n    \"sharpen_kernel_size\": 5,\n    \"order\": [\"gamma\", \"msr\", \"clahe\"],\n    \"use_lowlight_lime\": true,\n    \"use_lowlight_dual\": false,\n    \"lowlight_gamma\": 0.6,\n    \"lowlight_lambda\": 0.15,\n    \"lowlight_sigma\": 3.0,\n    \"lowlight_bc\": 1.0,\n    \"lowlight_bs\": 1.0,\n    \"lowlight_be\": 1.0\n}\n```\n\nReturns:\n    Enhanced image as downloadable JPEG file",
+        "description": "Enhance image with specified methods.\n\n- **image**: Image file (JPEG, PNG, etc.)\n- **params_json**: Enhancement parameters as JSON string\n\nExample JSON:\n```json\n{\n    \"use_gamma\": true,\n    \"gamma\": 0.5,\n    \"use_msr\": true,\n    \"msr_sigmas\": [15, 80, 250],\n    \"use_clahe\": true,\n    \"use_hist_eq\": false,\n    \"clahe_clip\": 2.5,\n    \"clahe_tile_size\": [8, 8],\n    \"use_ssr\": false,\n    \"ssr_sigma\": 80,\n    \"use_sharpen\": false,\n    \"sharpen_method\": \"unsharp\",\n    \"sharpen_strength\": 1.0,\n    \"sharpen_kernel_size\": 5,\n    \"order\": [\"gamma\", \"msr\", \"clahe\"],\n    \"use_lowlight_lime\": true,\n    \"use_lowlight_dual\": false,\n    \"lowlight_gamma\": 0.6,\n    \"lowlight_lambda\": 0.15,\n    \"lowlight_sigma\": 3.0,\n    \"lowlight_bc\": 1.0,\n    \"lowlight_bs\": 1.0,\n    \"lowlight_be\": 1.0\n}\n```\n\nReturns:\n    Enhanced image as downloadable JPEG file",
         "operationId": "enhance_image_api_enhancement_enhance_post",
         "parameters": [
           {
@@ -926,6 +926,12 @@
               8
             ]
           },
+          "use_hist_eq": {
+            "type": "boolean",
+            "title": "Use Hist Eq",
+            "description": "Use global histogram equalization on luminance channel",
+            "default": false
+          },
           "use_ssr": {
             "type": "boolean",
             "title": "Use Ssr",
@@ -1158,6 +1164,7 @@
           "use_denoise": false,
           "use_gamma": true,
           "use_gray_slice": false,
+          "use_hist_eq": false,
           "use_lowlight_dual": false,
           "use_lowlight_lime": true,
           "use_msr": true,

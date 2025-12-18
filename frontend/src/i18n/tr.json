@@ -161,10 +161,13 @@
         "ssr": "SSR (Single-Scale Retinex)",
         "useSsr": "SSR kullan",
         "ssrSigma": "SSR Sigma Değeri",
+        "histEq": "Histogram Eşitleme",
+        "useHistEq": "Histogram eşitleme kullan",
         "methodNames": {
             "gamma": "Gamma",
             "msr": "MSR",
             "clahe": "CLAHE",
+            "hist_eq": "Histogram Eşitleme",
             "sharpen": "Keskinleştirme",
             "ssr": "SSR",
             "lowlight_lime": "Low-light (LIME benzeri)",
