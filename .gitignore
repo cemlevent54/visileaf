@@ -6,3 +6,7 @@ results/
 backend/uploads/
 backend/app/weight_and_models/
 backend/checkpoints/
+
+# OS Meta Files
+._*
+.DS_Store
