@@ -1,0 +1,55 @@
+# FastAPI ve ASGI Server
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+
+# Database ORM ve Migration
+sqlmodel>=0.0.14
+sqlalchemy>=2.0.23
+alembic>=1.12.1
+psycopg[binary]>=3.1.14
+
+# Environment Variables
+python-dotenv>=1.0.0
+
+# Logging
+colorlog>=6.8.0
+
+# Utilities
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+pydantic[email]>=2.5.0
+
+# Authentication
+bcrypt>=4.0.1
+python-jose[cryptography]>=3.3.0
+PyJWT>=2.8.0
+
+# Email Service
+resend>=2.0.0
+
+# Image Processing
+opencv-python>=4.8.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+Pillow>=10.0.0
+
+# Scientific computing (LIME/DUAL low-light enhancement)
+scipy>=1.11.0
+
+# Deep Learning - EnlightenGAN dependencies
+dominate>=2.8.0
+torch>=2.0.0
+torchvision>=0.15.0
+visdom>=0.2.4
+
+# Deep Learning - LLFlow dependencies
+natsort>=8.4.0
+pyyaml>=6.0.1
+lpips>=0.1.4
+
+# Deep Learning - MIRNet-v2 dependencies
+# basicsr paketi GitHub'dan kurulmalı (PyPI'da Python 3.13 uyumluluk sorunu var)
+# Kurulum için: pip install git+https://github.com/xinntao/BasicSR.git
+# Not: requirements.txt'de direkt GitHub URL'i desteklenmeyebilir, manuel kurulum gerekebilir
+scikit-image>=0.21.0
+lmdb>=1.4.1
