@@ -1,4 +1,0 @@
-"""
-Service layer - Business logic
-"""
-

@@ -1,4 +1,0 @@
-"""
-Repository layer - Database operations
-"""
-
