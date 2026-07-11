@@ -37,31 +37,31 @@ async def lifespan(app: FastAPI):
     # Startup
     # Uvicorn başladıktan sonra logger'ları yeniden yapılandır
     reconfigure_uvicorn_loggers()
-    
+
     # Veritabanı bağlantısını test et (non-blocking)
     try:
         engine = get_engine()
         # Bağlantıyı test et (timeout ile)
         with engine.connect() as conn:
             logger.info(gettext("database_connection_success"))
-        
+
         # Veritabanı tablolarını oluştur (gerekirse)
         # init_db()  # SQLModel modelleri import edildikten sonra çağrılmalı
     except Exception as e:
         logger.warning(f"{gettext('database_connection_error')}: {e}")
         logger.warning("Application will continue without database connection")
-    
+
     # OpenAPI şemasını export et
     try:
         output_path = export_openapi_schema(app, "openapi.json")
         logger.info(f"OpenAPI şeması export edildi: {output_path}")
     except Exception as e:
         logger.warning(f"OpenAPI şeması export edilemedi: {e}")
-    
+
     logger.info(gettext("application_starting"))
-    
+
     yield
-    
+
     # Shutdown
     # Veritabanı bağlantısını kapat
     close_db()
@@ -86,6 +86,7 @@ setup_cors_middleware(app)
 # i18n Middleware ekle (ayarlar config/i18n.py'de)
 setup_i18n_middleware(app)
 
+
 @app.get("/")
 def read_root(request: Request):
     logger.info(gettext("home_page_request", request))
@@ -94,6 +95,7 @@ def read_root(request: Request):
 
 # Include routers
 from app.routes import auth, enhancement
+
 app.include_router(auth.router)
 app.include_router(enhancement.router)
 
@@ -111,19 +113,12 @@ UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 
-
-# Uvicorn'u programatik olarak çalıştırmak için
+## Uvicorn'u programatik olarak çalıştırmak için
 if __name__ == "__main__":
     import uvicorn
     from app.config import get_port, get_host
-    
+
     port = get_port()
     host = get_host()
-    
-    uvicorn.run(
-        "app.main:app",
-        host=host,
-        port=port,
-        reload=True
-    )
 
+    uvicorn.run("app.main:app", host=host, port=port, reload=True)
